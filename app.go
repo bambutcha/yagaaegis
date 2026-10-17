@@ -5,7 +5,10 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/bambutcha/localguard/internal/appupdate"
 	"github.com/bambutcha/localguard/internal/scanner"
+	"github.com/bambutcha/localguard/internal/sigdb"
+	"github.com/bambutcha/localguard/internal/version"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -26,10 +29,11 @@ func NewApp(log *slog.Logger) *App {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.log.Info("старт LocalGuard", "version", version.Label())
 	if eng, err := scanner.DetectEngine(a.log); err == nil {
 		a.engine = eng
 	} else {
-		a.log.Warn("ClamAV недоступен при старте", "err", err)
+		a.log.Warn("движок недоступен при старте", "err", err)
 	}
 }
 
@@ -40,20 +44,67 @@ func (a *App) baseCtx() context.Context {
 	return context.Background()
 }
 
-// EngineStatus — доступен ли локальный ClamAV.
+func (a *App) ensureEngine() error {
+	if a.engine != nil {
+		return nil
+	}
+	eng, err := scanner.DetectEngine(a.log)
+	if err != nil {
+		return err
+	}
+	a.engine = eng
+	return nil
+}
+
+// AppVersion — SemVer для UI (из internal/version).
+func (a *App) AppVersion() map[string]any {
+	return map[string]any{
+		"version": version.String,
+		"label":   version.Label(),
+	}
+}
+
+// CheckAppUpdate — есть ли новый релиз на GitHub (не базы ClamAV).
+func (a *App) CheckAppUpdate() map[string]any {
+	ctx, cancel := context.WithTimeout(a.baseCtx(), 25*time.Second)
+	defer cancel()
+	res := appupdate.Check(ctx)
+	return map[string]any{
+		"ok":        res.OK,
+		"current":   res.Current,
+		"latest":    res.Latest,
+		"hasUpdate": res.HasUpdate,
+		"url":       res.URL,
+		"message":   res.Message,
+		"checkedAt": res.CheckedAt,
+	}
+}
+
+// OpenURL открывает ссылку в системном браузере (страница релиза).
+func (a *App) OpenURL(url string) {
+	if url == "" {
+		return
+	}
+	runtime.BrowserOpenURL(a.baseCtx(), url)
+}
+
+// EngineStatus — доступен ли локальный движок и базы.
 func (a *App) EngineStatus() map[string]any {
 	out := map[string]any{
 		"available": false,
 		"offline":   true,
+		"dbReady":   false,
 		"privacy":   "Содержимое файлов не загружается в сеть. Только локальный скан.",
+		"appLabel":  version.Label(),
 	}
-	if a.engine == nil {
-		eng, err := scanner.DetectEngine(a.log)
-		if err != nil {
-			out["message"] = err.Error()
-			return out
-		}
-		a.engine = eng
+	dbDir, err := sigdb.Dir()
+	if err == nil {
+		out["dbDir"] = dbDir
+		out["dbReady"] = sigdb.HasDatabases(dbDir)
+	}
+	if err := a.ensureEngine(); err != nil {
+		out["message"] = err.Error()
+		return out
 	}
 	ctx, cancel := context.WithTimeout(a.baseCtx(), 5*time.Second)
 	defer cancel()
@@ -65,7 +116,30 @@ func (a *App) EngineStatus() map[string]any {
 	out["available"] = true
 	out["binary"] = a.engine.Binary
 	out["version"] = ver
-	out["message"] = "Локальный ClamAV готов"
+	if out["dbReady"] == true {
+		out["message"] = "Локальный движок и базы готовы"
+	} else {
+		out["message"] = "Движок найден, но баз нет — нажмите «Обновить базы»"
+	}
+	return out
+}
+
+// UpdateDatabases качает CVD с зеркала (Microsoft). Файлы пользователя не отправляются.
+func (a *App) UpdateDatabases() map[string]any {
+	ctx, cancel := context.WithTimeout(a.baseCtx(), 20*time.Minute)
+	defer cancel()
+	res := sigdb.Update(ctx, a.log, nil)
+	out := map[string]any{
+		"ok":      res.OK,
+		"dir":     res.Dir,
+		"mirror":  res.Mirror,
+		"message": res.Message,
+		"files":   res.Files,
+	}
+	if res.OK {
+		a.engine = nil
+		_ = a.ensureEngine()
+	}
 	return out
 }
 
@@ -83,18 +157,14 @@ func (a *App) PickFile() (string, error) {
 
 // ScanPath проверяет файл на диске. Содержимое не уходит в сеть.
 func (a *App) ScanPath(path string) scanner.Result {
-	if a.engine == nil {
-		eng, err := scanner.DetectEngine(a.log)
-		if err != nil {
-			return scanner.Result{
-				Path:      path,
-				Status:    scanner.StatusUnavailable,
-				Offline:   true,
-				Message:   err.Error(),
-				ScannedAt: time.Now().UTC().Format(time.RFC3339),
-			}
+	if err := a.ensureEngine(); err != nil {
+		return scanner.Result{
+			Path:      path,
+			Status:    scanner.StatusUnavailable,
+			Offline:   true,
+			Message:   err.Error(),
+			ScannedAt: time.Now().UTC().Format(time.RFC3339),
 		}
-		a.engine = eng
 	}
 	ctx, cancel := context.WithTimeout(a.baseCtx(), 10*time.Minute)
 	defer cancel()
@@ -103,5 +173,5 @@ func (a *App) ScanPath(path string) scanner.Result {
 
 // AppInfo — текст в шапке UI.
 func (a *App) AppInfo() string {
-	return "LocalGuard — локальная проверка на вирусы (файлы остаются на устройстве)"
+	return "локальная проверка на вирусы — файлы остаются на устройстве"
 }

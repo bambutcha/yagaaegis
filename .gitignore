@@ -1,10 +1,12 @@
 build/bin
+dist/
 node_modules
 frontend/node_modules
-# dist собирается в CI/локально; оставляем заглушку index.html для go:embed
+# frontend/dist собирается в CI/локально; заглушка index.html для go:embed
 frontend/dist/**
 !frontend/dist/index.html
 *.exe
+frontend/package.json.md5
 .DS_Store
 .idea
 .vscode

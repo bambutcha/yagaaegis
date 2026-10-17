@@ -1,15 +1,202 @@
+@import '@fontsource/syne/600.css';
+@import '@fontsource/syne/700.css';
+@import '@fontsource/syne/800.css';
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --ink: #12140f;
+  --paper: #e8e4d9;
+  --signal: #1f6b4a;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html,
 body,
 #root {
-  min-height: 100%;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
 }
 
 body {
-  margin: 0;
-  background: #0f172a;
-  color: #e2e8f0;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(45, 154, 104, 0.12), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(180, 83, 9, 0.08), transparent 50%),
+    linear-gradient(165deg, #f3f0e8 0%, #e8e4d9 48%, #d9d3c4 100%);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* сетка-инструмент, не «карточки» */
+.app-shell {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  isolation: isolate;
+}
+
+.app-shell::before {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(18, 20, 15, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 20, 15, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse at center, black 35%, transparent 80%);
+}
+
+.app-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.brand-mark {
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  font-size: clamp(2.1rem, 7vw + 1rem, 4.25rem);
+}
+
+.panel-rule {
+  border-top: 1px solid rgba(18, 20, 15, 0.18);
+}
+
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  border: 1.5px solid var(--ink);
+  background: var(--ink);
+  color: #f3f0e8;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--signal);
+  border-color: var(--signal);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  border: 1.5px solid rgba(18, 20, 15, 0.28);
+  background: transparent;
+  color: var(--ink);
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--ink);
+  background: rgba(18, 20, 15, 0.04);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.status-dot.ok {
+  background: #2d9a68;
+  box-shadow: 0 0 0 3px rgba(45, 154, 104, 0.2);
+}
+
+.status-dot.warn {
+  background: #b45309;
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.18);
+}
+
+.status-dot.bad {
+  background: #b42318;
+  box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.18);
+}
+
+.result-block {
+  animation: rise 0.45s ease-out both;
+}
+
+.scanning-veil::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(to bottom, transparent, rgba(31, 107, 74, 0.12), transparent);
+  animation: scanline 1.8s linear infinite;
+  pointer-events: none;
+}
+
+/* узкое / низкое окно */
+@media (max-height: 520px) {
+  .hide-short {
+    display: none !important;
+  }
+
+  .brand-mark {
+    font-size: clamp(1.6rem, 5vw + 0.8rem, 2.4rem);
+  }
+}
+
+@media (max-width: 420px) {
+  .stack-xs {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+}
+
+/* кастомный скролл результата */
+.scroll-pane {
+  overflow: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(18, 20, 15, 0.35) transparent;
+}
+
+.scroll-pane::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll-pane::-webkit-scrollbar-thumb {
+  background: rgba(18, 20, 15, 0.28);
+  border-radius: 4px;
 }

@@ -6,8 +6,20 @@ export function AppInfo() {
   return window['go']['main']['App']['AppInfo']();
 }
 
+export function AppVersion() {
+  return window['go']['main']['App']['AppVersion']();
+}
+
+export function CheckAppUpdate() {
+  return window['go']['main']['App']['CheckAppUpdate']();
+}
+
 export function EngineStatus() {
   return window['go']['main']['App']['EngineStatus']();
+}
+
+export function OpenURL(arg1) {
+  return window['go']['main']['App']['OpenURL'](arg1);
 }
 
 export function PickFile() {
@@ -16,4 +28,8 @@ export function PickFile() {
 
 export function ScanPath(arg1) {
   return window['go']['main']['App']['ScanPath'](arg1);
+}
+
+export function UpdateDatabases() {
+  return window['go']['main']['App']['UpdateDatabases']();
 }

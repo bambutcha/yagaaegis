@@ -13,9 +13,11 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/bambutcha/localguard/internal/runtimebin"
+	"github.com/bambutcha/localguard/internal/sigdb"
 )
 
-// Статусы результата для UI (коды стабильные, подписи — на фронте).
 const (
 	StatusClean       = "clean"
 	StatusInfected    = "infected"
@@ -36,44 +38,98 @@ type Result struct {
 	Offline    bool   `json:"offline"`
 }
 
-// Engine вызывает локальный бинарник ClamAV. Байты файла никуда не грузятся.
+// Engine вызывает clamscan. Сначала вшитый runtime, потом системный PATH.
 type Engine struct {
-	Binary string
-	log    *slog.Logger
+	Binary      string
+	DatabaseDir string
+	CertsDir    string // CVD CA (ClamAV 1.4+), рядом с вшитым runtime
+	log         *slog.Logger
 }
 
-// DetectEngine ищет clamscan/clamdscan в PATH.
+// DetectEngine находит движок и каталог баз приложения.
 func DetectEngine(log *slog.Logger) (*Engine, error) {
 	if log == nil {
 		log = slog.Default()
 	}
-	for _, name := range []string{"clamscan", "clamdscan"} {
-		path, err := exec.LookPath(name)
-		if err == nil {
-			log.Info("найден движок ClamAV", "binary", path)
-			return &Engine{Binary: path, log: log}, nil
+
+	// Вшитые базы из установщика → в user config (один раз).
+	if seed := runtimebin.SeedDir(); seed != "" {
+		if err := sigdb.SeedFrom(seed); err != nil {
+			log.Debug("seed баз пропущен", "err", err)
 		}
 	}
-	return nil, errors.New("ClamAV не найден (установи clamav; clamscan должен быть в PATH)")
+
+	dbDir, err := sigdb.Dir()
+	if err != nil {
+		return nil, err
+	}
+
+	binary, err := runtimebin.ClamscanPath()
+	if err != nil {
+		for _, name := range []string{"clamscan", "clamdscan"} {
+			path, lookErr := exec.LookPath(name)
+			if lookErr == nil {
+				binary = path
+				err = nil
+				break
+			}
+		}
+	}
+	if binary == "" {
+		return nil, errors.New("движок не найден: нужен вшитый runtime/…/clamscan или системный ClamAV")
+	}
+
+	eng := &Engine{
+		Binary:      binary,
+		DatabaseDir: dbDir,
+		CertsDir:    certsDirNextTo(binary),
+		log:         log,
+	}
+	if !sigdb.HasDatabases(dbDir) {
+		log.Warn("базы сигнатур отсутствуют — нужна кнопка «Обновить базы» или seed в установщике", "dir", dbDir)
+	}
+	log.Info("движок готов", "binary", binary, "db", dbDir, "certs", eng.CertsDir)
+	return eng, nil
+}
+
+func certsDirNextTo(binary string) string {
+	dir := filepath.Join(filepath.Dir(binary), "certs")
+	if st, err := os.Stat(dir); err == nil && st.IsDir() {
+		return dir
+	}
+	return ""
+}
+
+func (e *Engine) clamEnv() []string {
+	libDir := filepath.Dir(e.Binary)
+	env := append(os.Environ(), "LD_LIBRARY_PATH="+libDir+string(os.PathListSeparator)+os.Getenv("LD_LIBRARY_PATH"))
+	if e.CertsDir != "" {
+		env = append(env, "CVD_CERTS_DIR="+e.CertsDir)
+	}
+	return env
 }
 
 func (e *Engine) Version(ctx context.Context) (string, error) {
 	cmd := exec.CommandContext(ctx, e.Binary, "--version")
-	out, err := cmd.Output()
+	cmd.Dir = filepath.Dir(e.Binary)
+	cmd.Env = e.clamEnv()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
+		detail := strings.TrimSpace(string(out))
+		if detail != "" {
+			return "", fmt.Errorf("версия clamav: %v (%s)", err, firstLine(detail))
+		}
 		return "", fmt.Errorf("версия clamav: %w", err)
 	}
 	return strings.TrimSpace(string(out)), nil
 }
 
-// FileSHA256 считает отпечаток файла локально.
 func FileSHA256(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return "", err
 	}
 	defer f.Close()
-
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
 		return "", err
@@ -81,7 +137,7 @@ func FileSHA256(path string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-// ScanFile проверяет один файл только с диска.
+// ScanFile проверяет файл только локально.
 func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 	start := time.Now()
 	log := e.log
@@ -114,6 +170,12 @@ func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 		return res
 	}
 
+	if e.DatabaseDir == "" || !sigdb.HasDatabases(e.DatabaseDir) {
+		res.Status = StatusUnavailable
+		res.Message = "Нет баз сигнатур. Нажмите «Обновить базы» (зеркало для РФ) или переустановите с seed."
+		return res
+	}
+
 	hash, err := FileSHA256(abs)
 	if err != nil {
 		res.Status = StatusError
@@ -122,17 +184,21 @@ func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 	}
 	res.SHA256 = hash
 
-	log.Info("старт локального скана", "path", abs, "sha256", hash, "size", info.Size())
-
-	cmd := exec.CommandContext(ctx, e.Binary, "--no-summary", "--infected", abs)
+	args := []string{"--no-summary", "--infected", "-d", e.DatabaseDir}
+	if e.CertsDir != "" {
+		args = append(args, "--cvdcertsdir="+e.CertsDir)
+	}
+	args = append(args, abs)
+	cmd := exec.CommandContext(ctx, e.Binary, args...)
+	cmd.Dir = filepath.Dir(e.Binary)
+	cmd.Env = e.clamEnv()
 	out, err := cmd.CombinedOutput()
 	res.DurationMs = time.Since(start).Milliseconds()
 	text := strings.TrimSpace(string(out))
 
 	if err == nil {
 		res.Status = StatusClean
-		res.Message = "Угроз не найдено (локальный ClamAV)"
-		log.Info("скан чистый", "path", abs, "duration_ms", res.DurationMs)
+		res.Message = "Угроз не найдено (локальный движок)"
 		return res
 	}
 
@@ -142,8 +208,7 @@ func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 		case 1:
 			res.Status = StatusInfected
 			res.Threat = parseThreat(text, abs)
-			res.Message = "Обнаружена угроза (локальный ClamAV)"
-			log.Warn("скан: угроза", "path", abs, "threat", res.Threat)
+			res.Message = "Обнаружена угроза"
 			return res
 		default:
 			res.Status = StatusError
@@ -151,14 +216,12 @@ func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 			if res.Message == "" {
 				res.Message = err.Error()
 			}
-			log.Error("ошибка движка", "path", abs, "err", res.Message)
 			return res
 		}
 	}
 
 	res.Status = StatusError
 	res.Message = err.Error()
-	log.Error("сбой скана", "path", abs, "err", err)
 	return res
 }
 

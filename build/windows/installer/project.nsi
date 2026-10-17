@@ -64,7 +64,8 @@ ManifestDPIAware true
 
 !insertmacro MUI_UNPAGE_INSTFILES # Uinstalling page
 
-!insertmacro MUI_LANGUAGE "English" # Set the Language of the installer
+!insertmacro MUI_LANGUAGE "Russian"
+!insertmacro MUI_LANGUAGE "English"
 
 ## The following two statements can be used to sign the installer and the uninstaller. The path to the binaries are provided in %1
 #!uninstfinalize 'signtool --file "%1"'
@@ -88,8 +89,14 @@ Section
 
     !insertmacro wails.files
 
+    # Вшитый ClamAV runtime + seed CVD + Uninstall (scripts/package.sh → build/bin/)
+    File /r "..\..\bin\runtime"
+    File /r "..\..\bin\seed"
+    File "..\..\bin\Uninstall.exe"
+
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
+    CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME} Uninstall.lnk" "$INSTDIR\Uninstall.exe"
 
     !insertmacro wails.associateFiles
     !insertmacro wails.associateCustomProtocols
@@ -100,11 +107,15 @@ SectionEnd
 Section "uninstall"
     !insertmacro wails.setShellContext
 
-    RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
+    RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # WebView2 DataPath
+    # Базы CVD / данные LocalGuard
+    RMDir /r "$APPDATA\localguard"
+    RMDir /r "$LOCALAPPDATA\localguard"
 
     RMDir /r $INSTDIR
 
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
+    Delete "$SMPROGRAMS\${INFO_PRODUCTNAME} Uninstall.lnk"
     Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"
 
     !insertmacro wails.unassociateFiles
