@@ -139,10 +139,20 @@ function App() {
         setResult(null);
         setError('');
         try {
-            setResult((await ScanPath(path)) as ScanResult);
+            const res = (await ScanPath(path)) as ScanResult;
+            setResult(res);
             refreshHistory();
+            if (res.status === 'infected') {
+                const n = res.hits?.length || 1;
+                pushToast(n > 1 ? `Обнаружено угроз: ${n}` : `Угроза: ${res.threat || 'найдена'}`, 'err', 5000);
+            } else if (res.status === 'clean') {
+                pushToast(res.isDir ? 'Папка чистая' : 'Файл чистый', 'ok');
+            } else if (res.message) {
+                pushToast(res.message, 'warn');
+            }
         } catch (e) {
             setError(String(e));
+            pushToast(String(e), 'err');
         } finally {
             setBusy(false);
         }
@@ -297,32 +307,34 @@ function App() {
                 )}
             </section>
 
-            <main className="mt-[clamp(1rem,3vh,1.75rem)] flex min-h-0 flex-1 flex-col gap-[clamp(0.75rem,2vh,1.25rem)]">
+            <main className="mt-[clamp(0.65rem,2vh,1.5rem)] flex min-h-0 flex-1 flex-col gap-[clamp(0.55rem,1.5vh,1rem)]">
                 <div
-                    className={`relative flex shrink-0 flex-col items-stretch gap-3 sm:flex-row sm:items-center ${
+                    className={`actions-bar relative flex shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center ${
                         busy ? 'scanning-veil' : ''
                     }`}
                 >
-                    <button
-                        type="button"
-                        className="btn-primary min-h-[3rem] flex-1 px-5 py-3 text-[clamp(0.9rem,2vw,1.1rem)]"
-                        onClick={pickFileAndScan}
-                        disabled={busy || updating}
-                    >
-                        {busy ? 'Сканирование…' : 'Файл'}
-                    </button>
-                    <button
-                        type="button"
-                        className="btn-primary min-h-[3rem] flex-1 px-5 py-3 text-[clamp(0.9rem,2vw,1.1rem)]"
-                        onClick={pickFolderAndScan}
-                        disabled={busy || updating}
-                    >
-                        {busy ? 'Сканирование…' : 'Папка'}
-                    </button>
-                    <div className="flex shrink-0 flex-wrap gap-2 stack-xs">
+                    <div className="flex min-w-0 flex-1 gap-2">
                         <button
                             type="button"
-                            className="btn-ghost min-h-[2.75rem] px-4 py-2 text-sm"
+                            className="btn-primary min-h-[2.75rem] flex-1 px-4 py-2 text-[clamp(0.85rem,2vw,1.05rem)]"
+                            onClick={pickFileAndScan}
+                            disabled={busy || updating}
+                        >
+                            {busy ? '…' : 'Файл'}
+                        </button>
+                        <button
+                            type="button"
+                            className="btn-primary min-h-[2.75rem] flex-1 px-4 py-2 text-[clamp(0.85rem,2vw,1.05rem)]"
+                            onClick={pickFolderAndScan}
+                            disabled={busy || updating}
+                        >
+                            {busy ? '…' : 'Папка'}
+                        </button>
+                    </div>
+                    <div className="actions-secondary flex shrink-0 gap-2">
+                        <button
+                            type="button"
+                            className="btn-ghost min-h-[2.5rem] flex-1 px-3 py-2 text-sm sm:flex-none"
                             onClick={updateDatabases}
                             disabled={busy || updating}
                         >
@@ -330,7 +342,7 @@ function App() {
                         </button>
                         <button
                             type="button"
-                            className="btn-ghost min-h-[2.75rem] px-4 py-2 text-sm"
+                            className="btn-ghost min-h-[2.5rem] flex-1 px-3 py-2 text-sm sm:flex-none"
                             onClick={refreshEngine}
                             disabled={busy || updating}
                         >
@@ -338,11 +350,11 @@ function App() {
                         </button>
                         <button
                             type="button"
-                            className="btn-ghost min-h-[2.75rem] px-4 py-2 text-sm"
+                            className="btn-ghost min-h-[2.5rem] flex-1 px-3 py-2 text-sm sm:flex-none"
                             onClick={checkAppUpdate}
                             disabled={checkingUpd}
                         >
-                            {checkingUpd ? '…' : 'Обновления'}
+                            {checkingUpd ? '…' : 'Обновл.'}
                         </button>
                     </div>
                 </div>
@@ -379,7 +391,7 @@ function App() {
                     </div>
                 )}
 
-                <div className="scroll-pane flex-1 space-y-6">
+                <div className="scroll-pane min-h-[7rem] flex-1 space-y-5">
                     {result ? (
                         <article
                             className={`result-block border-l-[3px] pl-[clamp(0.75rem,2vw,1.1rem)] ${resultTone}`}
@@ -441,7 +453,7 @@ function App() {
                     )}
 
                     {history.length > 0 && (
-                        <section className="hide-short">
+                        <section>
                             <div className="mb-2 flex items-baseline justify-between gap-2">
                                 <h2 className="font-display text-sm font-bold tracking-wide text-ink">История</h2>
                                 <button
@@ -465,6 +477,7 @@ function App() {
                                             }
                                         >
                                             {statusRu[h.status] || h.status}
+                                            {h.hitCount && h.hitCount > 1 ? ` ×${h.hitCount}` : ''}
                                         </span>
                                         <span className="min-w-0 flex-1 truncate text-ink-soft" title={h.path}>
                                             {h.isDir ? '[dir] ' : ''}

@@ -52,6 +52,8 @@ body {
   flex-direction: column;
   min-height: 0;
   isolation: isolate;
+  overflow-x: hidden;
+  overflow-y: auto; /* узкое/низкое окно — скролл всего UI, кнопки не «съедают» результат */
 }
 
 .app-shell::before {
@@ -166,21 +168,38 @@ body {
   pointer-events: none;
 }
 
-/* узкое / низкое окно */
-@media (max-height: 520px) {
+/* узкое / низкое окно — уплотняем, но результат не прячем */
+@media (max-height: 560px) {
   .hide-short {
     display: none !important;
   }
 
   .brand-mark {
-    font-size: clamp(1.6rem, 5vw + 0.8rem, 2.4rem);
+    font-size: clamp(1.45rem, 4.5vw + 0.6rem, 2rem);
+  }
+
+  .btn-primary,
+  .btn-ghost {
+    min-height: 2.35rem !important;
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 480px) {
   .stack-xs {
     flex-direction: column;
     align-items: stretch !important;
+  }
+
+  .actions-bar {
+    flex-direction: column !important;
+  }
+
+  .actions-secondary {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
   }
 }
 

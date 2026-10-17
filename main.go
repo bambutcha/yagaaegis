@@ -26,8 +26,8 @@ func main() {
 		Title:  "LocalGuard " + version.Label(),
 		Width:  1024,
 		Height: 768,
-		MinWidth:  420,
-		MinHeight: 480,
+		MinWidth:  360,
+		MinHeight: 420,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

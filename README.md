@@ -1,4 +1,4 @@
-# LocalGuard `v0.3.1`
+# LocalGuard `v0.3.2`
 
 Автор: [bambutcha](https://github.com/bambutcha)
 
