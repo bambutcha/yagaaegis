@@ -441,7 +441,7 @@ function App() {
                                             {statusRu[h.status] || h.status}
                                         </span>
                                         <span className="min-w-0 flex-1 truncate text-ink-soft" title={h.path}>
-                                            {h.isDir ? '📁 ' : ''}
+                                            {h.isDir ? '[dir] ' : ''}
                                             {h.path}
                                         </span>
                                         <span className="shrink-0">{formatSecs(h.durationMs)}</span>
