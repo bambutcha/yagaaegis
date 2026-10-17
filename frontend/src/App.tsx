@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-import './App.css';
 import {AppInfo, EngineStatus, PickFile, ScanPath} from '../wailsjs/go/main/App';
 
 type ScanResult = {
@@ -31,7 +30,7 @@ const statusLabel: Record<string, string> = {
 };
 
 function App() {
-    const [info, setInfo] = useState('Stillroom');
+    const [info, setInfo] = useState('LocalGuard');
     const [engine, setEngine] = useState<EngineInfo | null>(null);
     const [busy, setBusy] = useState(false);
     const [result, setResult] = useState<ScanResult | null>(null);
@@ -53,8 +52,7 @@ function App() {
                 return;
             }
             setBusy(true);
-            const res = await ScanPath(path);
-            setResult(res as ScanResult);
+            setResult((await ScanPath(path)) as ScanResult);
         } catch (e) {
             setError(String(e));
         } finally {
@@ -71,52 +69,62 @@ function App() {
         }
     }
 
-    const statusClass =
+    const resultBorder =
         result?.status === 'clean'
-            ? 'ok'
+            ? 'border-emerald-600'
             : result?.status === 'infected'
-              ? 'bad'
-              : result
-                ? 'warn'
-                : '';
+              ? 'border-red-600'
+              : 'border-amber-600';
 
     return (
-        <div id="App">
-            <header className="header">
-                <h1>Stillroom</h1>
-                <p className="tagline">{info}</p>
-                <p className="privacy">
-                    Приватность: байты файла не покидают этот компьютер. Сеть нужна только если
-                    ты сам обновишь базы сигнатур.
+        <div className="mx-auto max-w-2xl px-5 py-8 text-slate-100">
+            <header className="mb-6">
+                <h1 className="mb-2 text-3xl font-semibold tracking-tight">LocalGuard</h1>
+                <p className="mb-3 text-slate-400">{info}</p>
+                <p className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm leading-relaxed text-sky-100">
+                    Приватность: байты файла не покидают этот компьютер. Сеть нужна только если ты сам
+                    обновишь базы сигнатур.
                 </p>
             </header>
 
-            <section className="card">
-                <h2>Движок сканирования</h2>
+            <section className="mb-4 rounded-xl border border-slate-700 bg-slate-900 p-4">
+                <h2 className="mb-3 text-lg font-medium">Движок сканирования</h2>
                 {engine?.available ? (
-                    <p className="ok-text">Готов: {engine.version || engine.binary}</p>
+                    <p className="text-emerald-400">Готов: {engine.version || engine.binary}</p>
                 ) : (
-                    <p className="warn-text">
+                    <p className="text-amber-300">
                         {engine?.message || 'ClamAV не найден. Установи clamav и перезапусти приложение.'}
                     </p>
                 )}
-                <button className="btn secondary" onClick={refreshEngine} disabled={busy}>
+                <button
+                    type="button"
+                    className="mt-3 rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold hover:bg-slate-600 disabled:opacity-60"
+                    onClick={refreshEngine}
+                    disabled={busy}
+                >
                     Обновить статус движка
                 </button>
             </section>
 
-            <section className="card">
-                <h2>Проверка файла</h2>
-                <button className="btn" onClick={pickAndScan} disabled={busy}>
+            <section className="mb-4 rounded-xl border border-slate-700 bg-slate-900 p-4">
+                <h2 className="mb-3 text-lg font-medium">Проверка файла</h2>
+                <button
+                    type="button"
+                    className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold hover:bg-sky-500 disabled:opacity-60"
+                    onClick={pickAndScan}
+                    disabled={busy}
+                >
                     {busy ? 'Сканирование…' : 'Выбрать файл и проверить'}
                 </button>
-                {error && <p className="bad-text">{error}</p>}
+                {error && <p className="mt-2 text-red-300">{error}</p>}
             </section>
 
             {result && (
-                <section className={`card result ${statusClass}`}>
-                    <h2>Результат: {statusLabel[result.status] || result.status}</h2>
-                    <ul className="meta">
+                <section className={`rounded-xl border bg-slate-900 p-4 ${resultBorder}`}>
+                    <h2 className="mb-3 text-lg font-medium">
+                        Результат: {statusLabel[result.status] || result.status}
+                    </h2>
+                    <ul className="list-disc space-y-1 break-all pl-5 text-sm leading-relaxed">
                         <li>
                             <strong>Путь:</strong> {result.path}
                         </li>

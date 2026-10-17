@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/bambutcha/stillroom/internal/scanner"
+	"github.com/bambutcha/localguard/internal/scanner"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -103,5 +103,5 @@ func (a *App) ScanPath(path string) scanner.Result {
 
 // AppInfo — текст в шапке UI.
 func (a *App) AppInfo() string {
-	return "Stillroom — локальная проверка на вирусы (файлы остаются на устройстве)"
+	return "LocalGuard — локальная проверка на вирусы (файлы остаются на устройстве)"
 }

@@ -47,7 +47,7 @@ jobs:
           wails build -platform linux/amd64
       - uses: actions/upload-artifact@v4
         with:
-          name: stillroom-linux-amd64
+          name: localguard-linux-amd64
           path: build/bin/*
 
   windows:
@@ -71,5 +71,5 @@ jobs:
           wails build -platform windows/amd64
       - uses: actions/upload-artifact@v4
         with:
-          name: stillroom-windows-amd64
+          name: localguard-windows-amd64
           path: build/bin/*

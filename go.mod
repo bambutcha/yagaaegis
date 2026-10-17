@@ -1,4 +1,4 @@
-module github.com/bambutcha/stillroom
+module github.com/bambutcha/localguard
 
 go 1.27
 

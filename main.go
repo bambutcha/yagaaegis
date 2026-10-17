@@ -24,7 +24,7 @@ func main() {
 	app := NewApp(log)
 
 	err := wails.Run(&options.App{
-		Title:  "Stillroom",
+		Title:  "LocalGuard",
 		Width:  1024,
 		Height: 768,
 		AssetServer: &assetserver.Options{
