@@ -23,8 +23,15 @@ type EngineInfo = {
     message?: string;
 };
 
+const statusLabel: Record<string, string> = {
+    clean: 'чисто',
+    infected: 'угроза',
+    error: 'ошибка',
+    unavailable: 'движок недоступен',
+};
+
 function App() {
-    const [info, setInfo] = useState('LocalGuard');
+    const [info, setInfo] = useState('Stillroom');
     const [engine, setEngine] = useState<EngineInfo | null>(null);
     const [busy, setBusy] = useState(false);
     const [result, setResult] = useState<ScanResult | null>(null);
@@ -76,42 +83,42 @@ function App() {
     return (
         <div id="App">
             <header className="header">
-                <h1>LocalGuard</h1>
+                <h1>Stillroom</h1>
                 <p className="tagline">{info}</p>
                 <p className="privacy">
-                    Privacy: file bytes never leave this computer. Optional network use is only for
-                    signature updates you trigger yourself.
+                    Приватность: байты файла не покидают этот компьютер. Сеть нужна только если
+                    ты сам обновишь базы сигнатур.
                 </p>
             </header>
 
             <section className="card">
-                <h2>Scanner engine</h2>
+                <h2>Движок сканирования</h2>
                 {engine?.available ? (
-                    <p className="ok-text">Ready: {engine.version || engine.binary}</p>
+                    <p className="ok-text">Готов: {engine.version || engine.binary}</p>
                 ) : (
                     <p className="warn-text">
-                        {engine?.message || 'ClamAV not detected. Install clamav and restart.'}
+                        {engine?.message || 'ClamAV не найден. Установи clamav и перезапусти приложение.'}
                     </p>
                 )}
                 <button className="btn secondary" onClick={refreshEngine} disabled={busy}>
-                    Refresh engine status
+                    Обновить статус движка
                 </button>
             </section>
 
             <section className="card">
-                <h2>Scan a file</h2>
+                <h2>Проверка файла</h2>
                 <button className="btn" onClick={pickAndScan} disabled={busy}>
-                    {busy ? 'Scanning…' : 'Choose file & scan'}
+                    {busy ? 'Сканирование…' : 'Выбрать файл и проверить'}
                 </button>
                 {error && <p className="bad-text">{error}</p>}
             </section>
 
             {result && (
                 <section className={`card result ${statusClass}`}>
-                    <h2>Result: {result.status}</h2>
+                    <h2>Результат: {statusLabel[result.status] || result.status}</h2>
                     <ul className="meta">
                         <li>
-                            <strong>Path:</strong> {result.path}
+                            <strong>Путь:</strong> {result.path}
                         </li>
                         {result.sha256 && (
                             <li>
@@ -120,26 +127,26 @@ function App() {
                         )}
                         {result.threat && (
                             <li>
-                                <strong>Threat:</strong> {result.threat}
+                                <strong>Угроза:</strong> {result.threat}
                             </li>
                         )}
                         {result.engine && (
                             <li>
-                                <strong>Engine:</strong> {result.engine}
+                                <strong>Движок:</strong> {result.engine}
                             </li>
                         )}
                         {typeof result.durationMs === 'number' && (
                             <li>
-                                <strong>Duration:</strong> {result.durationMs} ms
+                                <strong>Время:</strong> {result.durationMs} мс
                             </li>
                         )}
                         {result.message && (
                             <li>
-                                <strong>Details:</strong> {result.message}
+                                <strong>Подробности:</strong> {result.message}
                             </li>
                         )}
                         <li>
-                            <strong>Offline scan:</strong> {result.offline ? 'yes' : 'no'}
+                            <strong>Локальный скан:</strong> {result.offline ? 'да' : 'нет'}
                         </li>
                     </ul>
                 </section>

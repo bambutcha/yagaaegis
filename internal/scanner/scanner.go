@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-// Status values returned to the UI.
+// Статусы результата для UI (коды стабильные, подписи — на фронте).
 const (
 	StatusClean       = "clean"
 	StatusInfected    = "infected"
@@ -23,7 +23,7 @@ const (
 	StatusUnavailable = "unavailable"
 )
 
-// Result is returned to the UI after a local scan.
+// Result — ответ UI после локального скана.
 type Result struct {
 	Path       string `json:"path"`
 	SHA256     string `json:"sha256"`
@@ -36,12 +36,13 @@ type Result struct {
 	Offline    bool   `json:"offline"`
 }
 
-// Engine invokes a local ClamAV binary. File bytes are never uploaded.
+// Engine вызывает локальный бинарник ClamAV. Байты файла никуда не грузятся.
 type Engine struct {
 	Binary string
 	log    *slog.Logger
 }
 
+// DetectEngine ищет clamscan/clamdscan в PATH.
 func DetectEngine(log *slog.Logger) (*Engine, error) {
 	if log == nil {
 		log = slog.Default()
@@ -49,22 +50,23 @@ func DetectEngine(log *slog.Logger) (*Engine, error) {
 	for _, name := range []string{"clamscan", "clamdscan"} {
 		path, err := exec.LookPath(name)
 		if err == nil {
-			log.Info("clamav engine detected", "binary", path)
+			log.Info("найден движок ClamAV", "binary", path)
 			return &Engine{Binary: path, log: log}, nil
 		}
 	}
-	return nil, errors.New("ClamAV not found (install clamav; clamscan must be on PATH)")
+	return nil, errors.New("ClamAV не найден (установи clamav; clamscan должен быть в PATH)")
 }
 
 func (e *Engine) Version(ctx context.Context) (string, error) {
 	cmd := exec.CommandContext(ctx, e.Binary, "--version")
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("clamav version: %w", err)
+		return "", fmt.Errorf("версия clamav: %w", err)
 	}
 	return strings.TrimSpace(string(out)), nil
 }
 
+// FileSHA256 считает отпечаток файла локально.
 func FileSHA256(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -79,7 +81,7 @@ func FileSHA256(path string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-// ScanFile scans one file on local disk only.
+// ScanFile проверяет один файл только с диска.
 func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 	start := time.Now()
 	log := e.log
@@ -108,19 +110,19 @@ func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 	}
 	if info.IsDir() {
 		res.Status = StatusError
-		res.Message = "path is a directory; pick a file"
+		res.Message = "указана папка; выберите файл"
 		return res
 	}
 
 	hash, err := FileSHA256(abs)
 	if err != nil {
 		res.Status = StatusError
-		res.Message = fmt.Sprintf("hash: %v", err)
+		res.Message = fmt.Sprintf("хэш: %v", err)
 		return res
 	}
 	res.SHA256 = hash
 
-	log.Info("local scan start", "path", abs, "sha256", hash, "size", info.Size())
+	log.Info("старт локального скана", "path", abs, "sha256", hash, "size", info.Size())
 
 	cmd := exec.CommandContext(ctx, e.Binary, "--no-summary", "--infected", abs)
 	out, err := cmd.CombinedOutput()
@@ -129,8 +131,8 @@ func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 
 	if err == nil {
 		res.Status = StatusClean
-		res.Message = "No threats found (local ClamAV)"
-		log.Info("local scan clean", "path", abs, "duration_ms", res.DurationMs)
+		res.Message = "Угроз не найдено (локальный ClamAV)"
+		log.Info("скан чистый", "path", abs, "duration_ms", res.DurationMs)
 		return res
 	}
 
@@ -140,8 +142,8 @@ func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 		case 1:
 			res.Status = StatusInfected
 			res.Threat = parseThreat(text, abs)
-			res.Message = "Threat detected by local ClamAV"
-			log.Warn("local scan infected", "path", abs, "threat", res.Threat)
+			res.Message = "Обнаружена угроза (локальный ClamAV)"
+			log.Warn("скан: угроза", "path", abs, "threat", res.Threat)
 			return res
 		default:
 			res.Status = StatusError
@@ -149,14 +151,14 @@ func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 			if res.Message == "" {
 				res.Message = err.Error()
 			}
-			log.Error("local scan engine error", "path", abs, "err", res.Message)
+			log.Error("ошибка движка", "path", abs, "err", res.Message)
 			return res
 		}
 	}
 
 	res.Status = StatusError
 	res.Message = err.Error()
-	log.Error("local scan failed", "path", abs, "err", err)
+	log.Error("сбой скана", "path", abs, "err", err)
 	return res
 }
 

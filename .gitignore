@@ -1,7 +1,9 @@
 build/bin
 node_modules
-frontend/dist
 frontend/node_modules
+# dist собирается в CI/локально; оставляем заглушку index.html для go:embed
+frontend/dist/**
+!frontend/dist/index.html
 *.exe
 .DS_Store
 .idea

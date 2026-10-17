@@ -1,35 +1,43 @@
-# LocalGuard
+# Stillroom
 
-Local-only malware / document scanner. **File bytes never leave your machine.**
+Локальный сканер файлов и документов на вредоносное ПО.  
+**Содержимое файлов никуда не уходит** — проверка только на твоём компьютере.
 
-Stack (Oct 2026): **Go 1.27** + **Wails v2** + **React/TypeScript** + local **ClamAV**.
+Имя: *still room* — «тихая комната», где файл остаётся с тобой.
 
-## Privacy
+Стек: **Go 1.27** + **Wails v2** + **React/TypeScript** + локальный **ClamAV**.
 
-| Action | Network |
-|--------|---------|
-| Scan a file | **None** |
-| Update signatures (`freshclam`) | Downloads DB only — never uploads your files |
+## Приватность
 
-## Requirements
+| Действие | Сеть |
+|----------|------|
+| Сканирование файла | **Нет** — читаем только с диска |
+| Обновление баз (`freshclam`) | Только скачивание сигнатур. Твои файлы **не** загружаются |
 
-- **Go 1.27.2+** (`go version`)
+## Что нужно
+
+- Go **1.27.2+** (`go version`)
 - Node.js 20+
 - Wails CLI v2: `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
-- ClamAV on `PATH` (`clamscan`)
-- Linux GUI build: WebKitGTK (`libwebkit2gtk-4.1-dev` / distro equivalent)
+- ClamAV в `PATH` (`clamscan`)
+- Для GUI на Linux: WebKitGTK
 
-## Develop / build
+## Запуск и сборка
 
 ```bash
-export PATH="$HOME/.local/go/bin:$PATH"   # if you installed Go to ~/.local/go
+export PATH="$HOME/.local/go/bin:$PATH"
+export GOROOT="$HOME/.local/go"
+
+cd frontend && npm ci && npm run build && cd ..
+go test ./...
+
 wails dev
-wails build                                 # Linux
-wails build -platform windows/amd64         # Windows
+wails build                        # Linux
+wails build -platform windows/amd64  # Windows
 ```
 
-CI builds Linux + Windows artifacts on `main` / tags.
+> `go test` / `go build` требуют `frontend/dist` (собирается командой выше или в CI).
 
-## License
+## Лицензия
 
 MIT

@@ -14,6 +14,8 @@ import (
 var assets embed.FS
 
 func main() {
+	// slog — стандартный структурный логгер Go.
+	// JSONHandler пишет каждую строку как JSON (удобно для отладки и логов).
 	log := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
@@ -22,7 +24,7 @@ func main() {
 	app := NewApp(log)
 
 	err := wails.Run(&options.App{
-		Title:  "LocalGuard",
+		Title:  "Stillroom",
 		Width:  1024,
 		Height: 768,
 		AssetServer: &assetserver.Options{
@@ -35,7 +37,7 @@ func main() {
 		},
 	})
 	if err != nil {
-		log.Error("wails exited", "err", err)
+		log.Error("приложение завершилось с ошибкой", "err", err)
 		os.Exit(1)
 	}
 }

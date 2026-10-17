@@ -14,6 +14,14 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.27.2"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Сборка frontend (нужен для go:embed)
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
       - name: Test
         run: go test ./...
 
@@ -39,7 +47,7 @@ jobs:
           wails build -platform linux/amd64
       - uses: actions/upload-artifact@v4
         with:
-          name: localguard-linux-amd64
+          name: stillroom-linux-amd64
           path: build/bin/*
 
   windows:
@@ -63,5 +71,5 @@ jobs:
           wails build -platform windows/amd64
       - uses: actions/upload-artifact@v4
         with:
-          name: localguard-windows-amd64
+          name: stillroom-windows-amd64
           path: build/bin/*

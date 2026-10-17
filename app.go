@@ -5,17 +5,18 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/bambutcha/localguard/internal/scanner"
+	"github.com/bambutcha/stillroom/internal/scanner"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// App is the Wails backend.
+// App — бэкенд Wails, методы вызываются из React.
 type App struct {
 	ctx    context.Context
 	log    *slog.Logger
 	engine *scanner.Engine
 }
 
+// NewApp создаёт приложение с логгером.
 func NewApp(log *slog.Logger) *App {
 	if log == nil {
 		log = slog.Default()
@@ -28,7 +29,7 @@ func (a *App) startup(ctx context.Context) {
 	if eng, err := scanner.DetectEngine(a.log); err == nil {
 		a.engine = eng
 	} else {
-		a.log.Warn("clamav not available at startup", "err", err)
+		a.log.Warn("ClamAV недоступен при старте", "err", err)
 	}
 }
 
@@ -39,12 +40,12 @@ func (a *App) baseCtx() context.Context {
 	return context.Background()
 }
 
-// EngineStatus reports whether a local ClamAV binary is available.
+// EngineStatus — доступен ли локальный ClamAV.
 func (a *App) EngineStatus() map[string]any {
 	out := map[string]any{
 		"available": false,
 		"offline":   true,
-		"privacy":   "File bytes are never uploaded. Only local scanning.",
+		"privacy":   "Содержимое файлов не загружается в сеть. Только локальный скан.",
 	}
 	if a.engine == nil {
 		eng, err := scanner.DetectEngine(a.log)
@@ -64,23 +65,23 @@ func (a *App) EngineStatus() map[string]any {
 	out["available"] = true
 	out["binary"] = a.engine.Binary
 	out["version"] = ver
-	out["message"] = "Local ClamAV ready"
+	out["message"] = "Локальный ClamAV готов"
 	return out
 }
 
-// PickFile opens a native file dialog and returns the selected path (or empty).
+// PickFile открывает системный диалог выбора файла.
 func (a *App) PickFile() (string, error) {
 	return runtime.OpenFileDialog(a.baseCtx(), runtime.OpenDialogOptions{
-		Title: "Select a file to scan locally",
+		Title: "Выберите файл для локальной проверки",
 		Filters: []runtime.FileFilter{
-			{DisplayName: "Documents", Pattern: "*.pdf;*.doc;*.docx;*.odt;*.xls;*.xlsx;*.ppt;*.pptx"},
-			{DisplayName: "Archives", Pattern: "*.zip;*.rar;*.7z;*.tar;*.gz"},
-			{DisplayName: "All files", Pattern: "*.*"},
+			{DisplayName: "Документы", Pattern: "*.pdf;*.doc;*.docx;*.odt;*.xls;*.xlsx;*.ppt;*.pptx"},
+			{DisplayName: "Архивы", Pattern: "*.zip;*.rar;*.7z;*.tar;*.gz"},
+			{DisplayName: "Все файлы", Pattern: "*.*"},
 		},
 	})
 }
 
-// ScanPath scans a file on disk. Contents never leave the machine.
+// ScanPath проверяет файл на диске. Содержимое не уходит в сеть.
 func (a *App) ScanPath(path string) scanner.Result {
 	if a.engine == nil {
 		eng, err := scanner.DetectEngine(a.log)
@@ -100,7 +101,7 @@ func (a *App) ScanPath(path string) scanner.Result {
 	return a.engine.ScanFile(ctx, path)
 }
 
-// AppInfo is shown in the UI header.
+// AppInfo — текст в шапке UI.
 func (a *App) AppInfo() string {
-	return "LocalGuard — local-only malware scan (files stay on your device)"
+	return "Stillroom — локальная проверка на вирусы (файлы остаются на устройстве)"
 }
