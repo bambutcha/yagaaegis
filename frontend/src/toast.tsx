@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
+import {createPortal} from 'react-dom';
 
 export type ToastKind = 'ok' | 'warn' | 'err' | 'info';
 
@@ -14,12 +15,17 @@ let items: ToastItem[] = [];
 const listeners = new Set<Listener>();
 
 function emit() {
-    for (const l of listeners) l(items);
+    for (const l of listeners) l([...items]);
 }
 
-export function pushToast(text: string, kind: ToastKind = 'info', ms = 4200) {
+/** Не больше 2 toast сразу — новые вытесняют старые info. */
+export function pushToast(text: string, kind: ToastKind = 'info', ms = 3800) {
     const id = nextId++;
-    items = [...items, {id, kind, text}];
+    let next = [...items, {id, kind, text}];
+    while (next.length > 2) {
+        next = next.slice(1);
+    }
+    items = next;
     emit();
     window.setTimeout(() => {
         items = items.filter((t) => t.id !== id);
@@ -44,10 +50,15 @@ export function useToasts() {
 
 export function ToastHost() {
     const {list, dismiss} = useToasts();
-    if (list.length === 0) return null;
-    return (
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+    if (!mounted || list.length === 0) return null;
+
+    // portal в body — fixed не привязан к .app-shell (overflow), контент не двигается
+    return createPortal(
         <div
-            className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-stretch gap-2 p-[clamp(0.6rem,2.5vw,1rem)] sm:items-end"
+            className="pointer-events-none fixed inset-x-0 bottom-0 z-[100] flex flex-col items-stretch gap-2 p-[clamp(0.6rem,2.5vw,1rem)] sm:items-end"
+            style={{position: 'fixed'}}
             aria-live="polite"
         >
             {list.map((t) => (
@@ -55,19 +66,20 @@ export function ToastHost() {
                     key={t.id}
                     type="button"
                     onClick={() => dismiss(t.id)}
-                    className={`toast-enter pointer-events-auto max-w-full border px-[clamp(0.75rem,2vw,1rem)] py-[clamp(0.55rem,1.5vh,0.75rem)] text-left font-mono text-[clamp(0.68rem,1.8vw,0.78rem)] leading-snug shadow-stamp sm:max-w-[min(24rem,92vw)] ${
+                    className={`toast-enter pointer-events-auto w-full border bg-paper-mist/95 px-[clamp(0.75rem,2vw,1rem)] py-[clamp(0.55rem,1.5vh,0.75rem)] text-left font-mono text-[clamp(0.68rem,1.8vw,0.78rem)] leading-snug backdrop-blur-sm sm:w-auto sm:max-w-[min(22rem,92vw)] ${
                         t.kind === 'ok'
-                            ? 'border-signal bg-paper-mist text-signal'
+                            ? 'border-signal text-signal'
                             : t.kind === 'err'
-                              ? 'border-signal-danger bg-paper-mist text-signal-danger'
+                              ? 'border-signal-danger text-signal-danger'
                               : t.kind === 'warn'
-                                ? 'border-signal-warn bg-paper-mist text-signal-warn'
-                                : 'border-ink/25 bg-paper-mist text-ink-soft'
+                                ? 'border-signal-warn text-signal-warn'
+                                : 'border-ink/25 text-ink-soft'
                     }`}
                 >
                     {t.text}
                 </button>
             ))}
-        </div>
+        </div>,
+        document.body,
     );
 }

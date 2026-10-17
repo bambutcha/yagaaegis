@@ -96,6 +96,7 @@ function App() {
     const [history, setHistory] = useState<HistoryEntry[]>([]);
     const [error, setError] = useState('');
     const [appUpdate, setAppUpdate] = useState<UpdateInfo | null>(null);
+    const [historyOpen, setHistoryOpen] = useState(false);
 
     const refreshHistory = useCallback(() => {
         ScanHistory()
@@ -356,6 +357,16 @@ function App() {
                         >
                             {checkingUpd ? '…' : 'Обновл.'}
                         </button>
+                        <button
+                            type="button"
+                            className="btn-ghost min-h-[2.5rem] flex-1 px-3 py-2 text-sm sm:flex-none"
+                            onClick={() => {
+                                refreshHistory();
+                                setHistoryOpen(true);
+                            }}
+                        >
+                            История{history.length > 0 ? ` (${history.length})` : ''}
+                        </button>
                     </div>
                 </div>
 
@@ -452,21 +463,57 @@ function App() {
                         </p>
                     )}
 
-                    {history.length > 0 && (
-                        <section>
-                            <div className="mb-2 flex items-baseline justify-between gap-2">
-                                <h2 className="font-display text-sm font-bold tracking-wide text-ink">История</h2>
+                </div>
+            </main>
+
+            {engine?.dbDir && (
+                <footer className="panel-rule mt-auto shrink-0 pt-2 hide-short">
+                    <p className="truncate font-mono text-[0.65rem] text-ink-mute">базы · {engine.dbDir}</p>
+                </footer>
+            )}
+
+            {historyOpen && (
+                <div
+                    className="fixed inset-0 z-[90] flex items-end justify-center bg-ink/35 p-[clamp(0.5rem,2vw,1rem)] sm:items-center"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="История сканов"
+                    onClick={() => setHistoryOpen(false)}
+                >
+                    <div
+                        className="flex max-h-[min(70vh,32rem)] w-full max-w-lg flex-col border border-ink/20 bg-paper-mist shadow-stamp"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between gap-3 border-b border-ink/15 px-4 py-3">
+                            <h2 className="font-display text-base font-bold text-ink">История</h2>
+                            <div className="flex gap-3 font-mono text-[0.7rem]">
+                                {history.length > 0 && (
+                                    <button
+                                        type="button"
+                                        className="text-ink-mute underline-offset-2 hover:underline"
+                                        onClick={clearHistory}
+                                    >
+                                        очистить
+                                    </button>
+                                )}
                                 <button
                                     type="button"
-                                    className="font-mono text-[0.65rem] text-ink-mute underline-offset-2 hover:underline"
-                                    onClick={clearHistory}
+                                    className="text-ink underline-offset-2 hover:underline"
+                                    onClick={() => setHistoryOpen(false)}
                                 >
-                                    очистить
+                                    закрыть
                                 </button>
                             </div>
-                            <ul className="space-y-2 border-t border-ink/15 pt-2 font-mono text-[0.68rem] text-ink-mute">
-                                {history.slice(0, 12).map((h, i) => (
-                                    <li key={(h.scannedAt || '') + h.path + i} className="flex flex-wrap gap-x-3 gap-y-0.5">
+                        </div>
+                        <ul className="scroll-pane flex-1 space-y-2 px-4 py-3 font-mono text-[0.7rem] text-ink-mute">
+                            {history.length === 0 ? (
+                                <li className="text-ink-mute">Пока пусто — после скана записи появятся здесь.</li>
+                            ) : (
+                                history.slice(0, 40).map((h, i) => (
+                                    <li
+                                        key={(h.scannedAt || '') + h.path + i}
+                                        className="flex flex-wrap gap-x-3 gap-y-0.5 border-b border-ink/10 pb-2"
+                                    >
                                         <span
                                             className={
                                                 h.status === 'infected'
@@ -479,23 +526,17 @@ function App() {
                                             {statusRu[h.status] || h.status}
                                             {h.hitCount && h.hitCount > 1 ? ` ×${h.hitCount}` : ''}
                                         </span>
-                                        <span className="min-w-0 flex-1 truncate text-ink-soft" title={h.path}>
+                                        <span className="min-w-0 flex-1 break-all text-ink-soft" title={h.path}>
                                             {h.isDir ? '[dir] ' : ''}
                                             {h.path}
                                         </span>
                                         <span className="shrink-0">{formatSecs(h.durationMs)}</span>
                                     </li>
-                                ))}
-                            </ul>
-                        </section>
-                    )}
+                                ))
+                            )}
+                        </ul>
+                    </div>
                 </div>
-            </main>
-
-            {engine?.dbDir && (
-                <footer className="panel-rule mt-auto shrink-0 pt-2 hide-short">
-                    <p className="truncate font-mono text-[0.65rem] text-ink-mute">базы · {engine.dbDir}</p>
-                </footer>
             )}
         </div>
     );
