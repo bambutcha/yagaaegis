@@ -23,10 +23,16 @@ rm -rf "$DIST"
 mkdir -p "$DIST" "${ROOT}/build/bin"
 
 echo "==> 1/5 wails build (${PLATFORM})"
+WAILS_EXTRA=()
+# Ubuntu 24.04 / CI: только webkit2gtk-4.1 → тег Wails
+if [[ "$OS" == "linux" ]] && pkg-config --exists webkit2gtk-4.1 2>/dev/null; then
+  WAILS_EXTRA+=(-tags webkit2_41)
+  echo "webkit2gtk-4.1 → wails -tags webkit2_41"
+fi
 if [[ "$OS" == "windows" ]]; then
-  wails build -platform windows/amd64 -clean
+  wails build -platform windows/amd64 -clean "${WAILS_EXTRA[@]}"
 else
-  wails build -platform linux/amd64 -clean
+  wails build -platform linux/amd64 -clean "${WAILS_EXTRA[@]}"
 fi
 
 if [[ ! -f "${ROOT}/build/bin/${BIN_NAME}" ]]; then
@@ -59,7 +65,7 @@ cp -a "${DIST}/seed" "${ROOT}/build/bin/seed"
 if [[ "$OS" == "windows" && "$WANT_NSIS" -eq 1 ]]; then
   echo "==> NSIS installer (runtime+seed уже в build/bin)"
   if command -v makensis >/dev/null; then
-    wails build -platform windows/amd64 -nsis
+    wails build -platform windows/amd64 -nsis "${WAILS_EXTRA[@]}"
   else
     echo "makensis не найден — только portable zip (на CI windows-latest будет installer)"
   fi
@@ -69,8 +75,14 @@ echo "==> 5/5 архив"
 mkdir -p "${ROOT}/dist"
 if [[ "$OS" == "windows" ]]; then
   ARCHIVE="${ROOT}/dist/LocalGuard-${PLATFORM}.zip"
-  (cd "${ROOT}/dist" && rm -f "$ARCHIVE" && zip -qr "$ARCHIVE" "${PLATFORM}")
-  # копируем installer в dist/
+  rm -f "$ARCHIVE"
+  if command -v zip >/dev/null; then
+    (cd "${ROOT}/dist" && zip -qr "$ARCHIVE" "${PLATFORM}")
+  else
+    # CI windows-latest часто без zip.exe
+    powershell.exe -NoProfile -Command \
+      "Compress-Archive -Path 'dist/${PLATFORM}' -DestinationPath 'dist/LocalGuard-${PLATFORM}.zip' -Force"
+  fi
   shopt -s nullglob
   for f in "${ROOT}/build/bin/"*-installer.exe; do
     cp -a "$f" "${ROOT}/dist/"
