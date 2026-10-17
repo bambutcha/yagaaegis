@@ -6,6 +6,8 @@ export function AppInfo():Promise<string>;
 
 export function AppVersion():Promise<Record<string, any>>;
 
+export function ApplyAppUpdate():Promise<Record<string, any>>;
+
 export function CheckAppUpdate():Promise<Record<string, any>>;
 
 export function EngineStatus():Promise<Record<string, any>>;

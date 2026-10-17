@@ -10,6 +10,10 @@ export function AppVersion() {
   return window['go']['main']['App']['AppVersion']();
 }
 
+export function ApplyAppUpdate() {
+  return window['go']['main']['App']['ApplyAppUpdate']();
+}
+
 export function CheckAppUpdate() {
   return window['go']['main']['App']['CheckAppUpdate']();
 }

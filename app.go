@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/bambutcha/localguard/internal/appupdate"
@@ -68,15 +70,38 @@ func (a *App) AppVersion() map[string]any {
 func (a *App) CheckAppUpdate() map[string]any {
 	ctx, cancel := context.WithTimeout(a.baseCtx(), 25*time.Second)
 	defer cancel()
-	res := appupdate.Check(ctx)
+	return updateResultMap(appupdate.Check(ctx))
+}
+
+// ApplyAppUpdate скачивает portable-пакет с GitHub и ставит поверх текущей папки.
+func (a *App) ApplyAppUpdate() map[string]any {
+	exe, err := os.Executable()
+	if err != nil {
+		return map[string]any{"ok": false, "message": err.Error()}
+	}
+	if resolved, e := filepath.EvalSymlinks(exe); e == nil {
+		exe = resolved
+	}
+	dir := filepath.Dir(exe)
+	ctx, cancel := context.WithTimeout(a.baseCtx(), 45*time.Minute)
+	defer cancel()
+	res := appupdate.Apply(ctx, dir)
+	a.log.Info("apply update", "ok", res.OK, "latest", res.Latest, "msg", res.Message)
+	return updateResultMap(res)
+}
+
+func updateResultMap(res appupdate.Result) map[string]any {
 	return map[string]any{
-		"ok":        res.OK,
-		"current":   res.Current,
-		"latest":    res.Latest,
-		"hasUpdate": res.HasUpdate,
-		"url":       res.URL,
-		"message":   res.Message,
-		"checkedAt": res.CheckedAt,
+		"ok":          res.OK,
+		"current":     res.Current,
+		"latest":      res.Latest,
+		"hasUpdate":   res.HasUpdate,
+		"url":         res.URL,
+		"assetUrl":    res.AssetURL,
+		"assetName":   res.AssetName,
+		"message":     res.Message,
+		"checkedAt":   res.CheckedAt,
+		"needRestart": res.NeedRestart,
 	}
 }
 

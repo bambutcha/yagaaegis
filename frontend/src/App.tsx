@@ -2,6 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {
     AppInfo,
     AppVersion,
+    ApplyAppUpdate,
     CheckAppUpdate,
     EngineStatus,
     OpenURL,
@@ -38,7 +39,9 @@ type UpdateInfo = {
     hasUpdate?: boolean;
     latest?: string;
     url?: string;
+    assetUrl?: string;
     message?: string;
+    needRestart?: boolean;
 };
 
 const statusRu: Record<string, string> = {
@@ -61,6 +64,7 @@ function App() {
     const [busy, setBusy] = useState(false);
     const [updating, setUpdating] = useState(false);
     const [checkingUpd, setCheckingUpd] = useState(false);
+    const [applyingUpd, setApplyingUpd] = useState(false);
     const [result, setResult] = useState<ScanResult | null>(null);
     const [error, setError] = useState('');
     const [updateMsg, setUpdateMsg] = useState('');
@@ -139,6 +143,24 @@ function App() {
             setError(String(e));
         } finally {
             setCheckingUpd(false);
+        }
+    }
+
+    async function applyAppUpdate() {
+        setError('');
+        setApplyingUpd(true);
+        try {
+            const res = (await ApplyAppUpdate()) as UpdateInfo;
+            setAppUpdate(res);
+            if (res.ok) {
+                AppVersion()
+                    .then((v) => setAppLabel(String((v as {label?: string}).label || 'v?')))
+                    .catch(() => undefined);
+            }
+        } catch (e) {
+            setError(String(e));
+        } finally {
+            setApplyingUpd(false);
         }
     }
 
@@ -226,8 +248,21 @@ function App() {
                         {error && <p className="text-signal-danger">{error}</p>}
                         {updateMsg && <p className="text-ink-mute">{updateMsg}</p>}
                         {appUpdate?.message && (
-                            <p className={appUpdate.hasUpdate ? 'text-signal' : 'text-ink-mute'}>
+                            <p className={appUpdate.hasUpdate || appUpdate.needRestart ? 'text-signal' : 'text-ink-mute'}>
                                 {appUpdate.message}
+                                {appUpdate.hasUpdate && appUpdate.assetUrl && (
+                                    <>
+                                        {' · '}
+                                        <button
+                                            type="button"
+                                            className="underline decoration-signal underline-offset-2 disabled:opacity-50"
+                                            onClick={applyAppUpdate}
+                                            disabled={applyingUpd}
+                                        >
+                                            {applyingUpd ? 'устанавливаю…' : 'установить'}
+                                        </button>
+                                    </>
+                                )}
                                 {appUpdate.hasUpdate && appUpdate.url && (
                                     <>
                                         {' · '}
@@ -236,7 +271,7 @@ function App() {
                                             className="underline decoration-signal underline-offset-2"
                                             onClick={() => OpenURL(appUpdate.url!)}
                                         >
-                                            скачать
+                                            страница
                                         </button>
                                     </>
                                 )}
