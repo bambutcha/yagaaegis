@@ -1,4 +1,4 @@
-# LocalGuard `v0.2.2`
+# LocalGuard `v0.2.3`
 
 Локальный сканер файлов для **Windows и Linux**.  
 Скачал пакет → распаковал/установил → запустил. **Содержимое файлов в сеть не уходит.**
@@ -9,8 +9,8 @@
 
 | Платформа | Артефакт |
 |-----------|----------|
-| Linux | `LocalGuard-linux-amd64.tar.gz` — бинарник + `runtime/` + `seed/` |
-| Windows | `LocalGuard-windows-amd64.zip` (portable) и/или `*-installer.exe` (NSIS) |
+| Linux | `LocalGuard-linux-amd64.tar.gz` — бинарник + `runtime/` + `seed/` (~130 MB сжатый) |
+| Windows | `LocalGuard-windows-amd64.zip` / `*-installer.exe` (~250 MB: seed CVD ≈108 MB + ClamAV runtime) |
 
 Внутри:
 

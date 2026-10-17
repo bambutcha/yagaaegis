@@ -2,9 +2,9 @@
 package version
 
 // String — SemVer. Менять по правилу .cursor/rules/localguard-versioning.mdc
-const String = "0.2.2"
+const String = "0.2.3"
 
-// Label — для UI («v0.2.2»).
+// Label — для UI («v0.2.3»).
 func Label() string {
 	return "v" + String
 }
