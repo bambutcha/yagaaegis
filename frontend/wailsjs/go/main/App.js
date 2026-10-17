@@ -18,6 +18,10 @@ export function CheckAppUpdate() {
   return window['go']['main']['App']['CheckAppUpdate']();
 }
 
+export function ClearScanHistory() {
+  return window['go']['main']['App']['ClearScanHistory']();
+}
+
 export function EngineStatus() {
   return window['go']['main']['App']['EngineStatus']();
 }
@@ -28,6 +32,14 @@ export function OpenURL(arg1) {
 
 export function PickFile() {
   return window['go']['main']['App']['PickFile']();
+}
+
+export function PickFolder() {
+  return window['go']['main']['App']['PickFolder']();
+}
+
+export function ScanHistory() {
+  return window['go']['main']['App']['ScanHistory']();
 }
 
 export function ScanPath(arg1) {

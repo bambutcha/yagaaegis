@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/bambutcha/localguard/internal/appupdate"
+	"github.com/bambutcha/localguard/internal/history"
 	"github.com/bambutcha/localguard/internal/scanner"
 	"github.com/bambutcha/localguard/internal/sigdb"
 	"github.com/bambutcha/localguard/internal/version"
@@ -31,7 +32,7 @@ func NewApp(log *slog.Logger) *App {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	a.log.Info("старт LocalGuard", "version", version.Label())
+	a.log.Info("старт LocalGuard", "version", version.Label(), "author", version.Author)
 	if eng, err := scanner.DetectEngine(a.log); err == nil {
 		a.engine = eng
 	} else {
@@ -58,11 +59,14 @@ func (a *App) ensureEngine() error {
 	return nil
 }
 
-// AppVersion — SemVer для UI (из internal/version).
+// AppVersion — SemVer + автор для UI.
 func (a *App) AppVersion() map[string]any {
 	return map[string]any{
-		"version": version.String,
-		"label":   version.Label(),
+		"version":   version.String,
+		"label":     version.Label(),
+		"author":    version.Author,
+		"authorURL": version.AuthorURL,
+		"credit":    version.Credit(),
 	}
 }
 
@@ -105,7 +109,7 @@ func updateResultMap(res appupdate.Result) map[string]any {
 	}
 }
 
-// OpenURL открывает ссылку в системном браузере (страница релиза).
+// OpenURL открывает ссылку в системном браузере.
 func (a *App) OpenURL(url string) {
 	if url == "" {
 		return
@@ -120,7 +124,7 @@ func (a *App) EngineStatus() map[string]any {
 		"offline":   true,
 		"dbReady":   false,
 		"privacy":   "Содержимое файлов не загружается в сеть. Только локальный скан.",
-		"appLabel":  version.Label(),
+		"appLabel":  version.Credit(),
 	}
 	dbDir, err := sigdb.Dir()
 	if err == nil {
@@ -149,7 +153,7 @@ func (a *App) EngineStatus() map[string]any {
 	return out
 }
 
-// UpdateDatabases качает CVD с зеркала (Microsoft). Файлы пользователя не отправляются.
+// UpdateDatabases качает CVD с зеркала (Microsoft).
 func (a *App) UpdateDatabases() map[string]any {
 	ctx, cancel := context.WithTimeout(a.baseCtx(), 20*time.Minute)
 	defer cancel()
@@ -168,12 +172,11 @@ func (a *App) UpdateDatabases() map[string]any {
 	return out
 }
 
-// PickFile открывает системный диалог выбора файла.
+// PickFile открывает диалог выбора файла.
 func (a *App) PickFile() (string, error) {
 	return runtime.OpenFileDialog(a.baseCtx(), runtime.OpenDialogOptions{
 		Title: "Выберите файл для локальной проверки",
 		Filters: []runtime.FileFilter{
-			// Первый в списке = выбранный по умолчанию в системном диалоге
 			{DisplayName: "Все файлы", Pattern: "*.*"},
 			{DisplayName: "Документы", Pattern: "*.pdf;*.doc;*.docx;*.odt;*.xls;*.xlsx;*.ppt;*.pptx"},
 			{DisplayName: "Архивы", Pattern: "*.zip;*.rar;*.7z;*.tar;*.gz"},
@@ -182,7 +185,14 @@ func (a *App) PickFile() (string, error) {
 	})
 }
 
-// ScanPath проверяет файл на диске. Содержимое не уходит в сеть.
+// PickFolder открывает диалог выбора папки (рекурсивный скан).
+func (a *App) PickFolder() (string, error) {
+	return runtime.OpenDirectoryDialog(a.baseCtx(), runtime.OpenDialogOptions{
+		Title: "Выберите папку для локальной проверки",
+	})
+}
+
+// ScanPath проверяет файл или папку. Содержимое не уходит в сеть.
 func (a *App) ScanPath(path string) scanner.Result {
 	if err := a.ensureEngine(); err != nil {
 		return scanner.Result{
@@ -193,12 +203,44 @@ func (a *App) ScanPath(path string) scanner.Result {
 			ScannedAt: time.Now().UTC().Format(time.RFC3339),
 		}
 	}
-	ctx, cancel := context.WithTimeout(a.baseCtx(), 10*time.Minute)
+	timeout := 10 * time.Minute
+	if st, err := os.Stat(path); err == nil && st.IsDir() {
+		timeout = 60 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(a.baseCtx(), timeout)
 	defer cancel()
-	return a.engine.ScanFile(ctx, path)
+	res := a.engine.ScanPath(ctx, path)
+	_ = history.Append(history.Entry{
+		Path:       res.Path,
+		Status:     res.Status,
+		Threat:     res.Threat,
+		Message:    res.Message,
+		IsDir:      res.IsDir,
+		HitCount:   len(res.Hits),
+		DurationMs: res.DurationMs,
+		ScannedAt:  res.ScannedAt,
+	})
+	return res
 }
 
-// AppInfo — текст в шапке UI.
+// ScanHistory — последние сканы.
+func (a *App) ScanHistory() []history.Entry {
+	list, err := history.List()
+	if err != nil {
+		a.log.Warn("история", "err", err)
+		return nil
+	}
+	return list
+}
+
+// ClearScanHistory очищает историю.
+func (a *App) ClearScanHistory() {
+	if err := history.Clear(); err != nil {
+		a.log.Warn("очистка истории", "err", err)
+	}
+}
+
+// AppInfo — подзаголовок в UI.
 func (a *App) AppInfo() string {
 	return "локальная проверка на вирусы — файлы остаются на устройстве"
 }

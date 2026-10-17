@@ -25,12 +25,20 @@ const (
 	StatusUnavailable = "unavailable"
 )
 
+// Hit — одна находка при скане папки.
+type Hit struct {
+	Path   string `json:"path"`
+	Threat string `json:"threat"`
+}
+
 // Result — ответ UI после локального скана.
 type Result struct {
 	Path       string `json:"path"`
-	SHA256     string `json:"sha256"`
+	SHA256     string `json:"sha256,omitempty"`
 	Status     string `json:"status"`
 	Threat     string `json:"threat,omitempty"`
+	Hits       []Hit  `json:"hits,omitempty"`
+	IsDir      bool   `json:"isDir"`
 	Engine     string `json:"engine"`
 	ScannedAt  string `json:"scannedAt"`
 	DurationMs int64  `json:"durationMs"`
@@ -42,7 +50,7 @@ type Result struct {
 type Engine struct {
 	Binary      string
 	DatabaseDir string
-	CertsDir    string // CVD CA (ClamAV 1.4+), рядом с вшитым runtime
+	CertsDir    string
 	log         *slog.Logger
 }
 
@@ -52,7 +60,6 @@ func DetectEngine(log *slog.Logger) (*Engine, error) {
 		log = slog.Default()
 	}
 
-	// Вшитые базы из установщика → в user config (один раз).
 	if seed := runtimebin.SeedDir(); seed != "" {
 		if err := sigdb.SeedFrom(seed); err != nil {
 			log.Debug("seed баз пропущен", "err", err)
@@ -86,7 +93,7 @@ func DetectEngine(log *slog.Logger) (*Engine, error) {
 		log:         log,
 	}
 	if !sigdb.HasDatabases(dbDir) {
-		log.Warn("базы сигнатур отсутствуют — нужна кнопка «Обновить базы» или seed в установщике", "dir", dbDir)
+		log.Warn("базы сигнатур отсутствуют", "dir", dbDir)
 	}
 	log.Info("движок готов", "binary", binary, "db", dbDir, "certs", eng.CertsDir)
 	return eng, nil
@@ -137,14 +144,9 @@ func FileSHA256(path string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-// ScanFile проверяет файл только локально.
-func (e *Engine) ScanFile(ctx context.Context, path string) Result {
+// ScanPath проверяет файл или папку (рекурсивно) только локально.
+func (e *Engine) ScanPath(ctx context.Context, path string) Result {
 	start := time.Now()
-	log := e.log
-	if log == nil {
-		log = slog.Default()
-	}
-
 	abs, err := filepath.Abs(path)
 	res := Result{
 		Path:      abs,
@@ -164,31 +166,33 @@ func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 		res.Message = err.Error()
 		return res
 	}
-	if info.IsDir() {
-		res.Status = StatusError
-		res.Message = "указана папка; выберите файл"
-		return res
-	}
+	res.IsDir = info.IsDir()
 
 	if e.DatabaseDir == "" || !sigdb.HasDatabases(e.DatabaseDir) {
 		res.Status = StatusUnavailable
-		res.Message = "Нет баз сигнатур. Нажмите «Обновить базы» (зеркало для РФ) или переустановите с seed."
+		res.Message = "Нет баз сигнатур. Нажмите «Обновить базы» или переустановите с seed."
 		return res
 	}
 
-	hash, err := FileSHA256(abs)
-	if err != nil {
-		res.Status = StatusError
-		res.Message = fmt.Sprintf("хэш: %v", err)
-		return res
+	if !res.IsDir {
+		hash, err := FileSHA256(abs)
+		if err != nil {
+			res.Status = StatusError
+			res.Message = fmt.Sprintf("хэш: %v", err)
+			return res
+		}
+		res.SHA256 = hash
 	}
-	res.SHA256 = hash
 
 	args := []string{"--no-summary", "--infected", "-d", e.DatabaseDir}
 	if e.CertsDir != "" {
 		args = append(args, "--cvdcertsdir="+e.CertsDir)
 	}
+	if res.IsDir {
+		args = append(args, "-r")
+	}
 	args = append(args, abs)
+
 	cmd := exec.CommandContext(ctx, e.Binary, args...)
 	cmd.Dir = filepath.Dir(e.Binary)
 	cmd.Env = e.clamEnv()
@@ -198,7 +202,11 @@ func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 
 	if err == nil {
 		res.Status = StatusClean
-		res.Message = "Угроз не найдено (локальный движок)"
+		if res.IsDir {
+			res.Message = "В папке угроз не найдено"
+		} else {
+			res.Message = "Угроз не найдено (локальный движок)"
+		}
 		return res
 	}
 
@@ -207,8 +215,18 @@ func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 		switch exitErr.ExitCode() {
 		case 1:
 			res.Status = StatusInfected
-			res.Threat = parseThreat(text, abs)
-			res.Message = "Обнаружена угроза"
+			res.Hits = parseHits(text)
+			if len(res.Hits) > 0 {
+				res.Threat = res.Hits[0].Threat
+				if res.IsDir {
+					res.Message = fmt.Sprintf("Обнаружено угроз: %d", len(res.Hits))
+				} else {
+					res.Message = "Обнаружена угроза"
+				}
+			} else {
+				res.Threat = parseThreat(text, abs)
+				res.Message = "Обнаружена угроза"
+			}
 			return res
 		default:
 			res.Status = StatusError
@@ -225,20 +243,39 @@ func (e *Engine) ScanFile(ctx context.Context, path string) Result {
 	return res
 }
 
-func parseThreat(output, path string) string {
+// ScanFile — алиас для одного файла (тесты / совместимость).
+func (e *Engine) ScanFile(ctx context.Context, path string) Result {
+	return e.ScanPath(ctx, path)
+}
+
+func parseHits(output string) []Hit {
+	var hits []Hit
 	for _, line := range strings.Split(output, "\n") {
 		line = strings.TrimSpace(line)
-		if line == "" {
+		if line == "" || !strings.HasSuffix(line, "FOUND") {
 			continue
 		}
-		if strings.Contains(line, "FOUND") {
-			line = strings.TrimPrefix(line, path+":")
-			line = strings.TrimSpace(line)
-			return strings.TrimSuffix(line, " FOUND")
+		// /path/to/file: Threat.Name FOUND
+		i := strings.LastIndex(line, ": ")
+		if i < 0 {
+			continue
 		}
-		if i := strings.Index(line, ": "); i >= 0 && strings.HasSuffix(line, "FOUND") {
-			return strings.TrimSpace(strings.TrimSuffix(line[i+2:], "FOUND"))
+		p := strings.TrimSpace(line[:i])
+		threat := strings.TrimSpace(strings.TrimSuffix(line[i+2:], "FOUND"))
+		hits = append(hits, Hit{Path: p, Threat: threat})
+	}
+	return hits
+}
+
+func parseThreat(output, path string) string {
+	hits := parseHits(output)
+	for _, h := range hits {
+		if h.Path == path || strings.HasSuffix(h.Path, path) {
+			return h.Threat
 		}
+	}
+	if len(hits) > 0 {
+		return hits[0].Threat
 	}
 	return "unknown"
 }

@@ -1,21 +1,28 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {
     AppInfo,
     AppVersion,
     ApplyAppUpdate,
     CheckAppUpdate,
+    ClearScanHistory,
     EngineStatus,
     OpenURL,
     PickFile,
+    PickFolder,
+    ScanHistory,
     ScanPath,
     UpdateDatabases,
 } from '../wailsjs/go/main/App';
+
+type Hit = {path: string; threat: string};
 
 type ScanResult = {
     path: string;
     sha256?: string;
     status: string;
     threat?: string;
+    hits?: Hit[];
+    isDir?: boolean;
     engine?: string;
     scannedAt?: string;
     durationMs?: number;
@@ -23,13 +30,21 @@ type ScanResult = {
     offline?: boolean;
 };
 
+type HistoryEntry = {
+    path: string;
+    status: string;
+    threat?: string;
+    message?: string;
+    isDir?: boolean;
+    hitCount?: number;
+    durationMs?: number;
+    scannedAt?: string;
+};
+
 type EngineInfo = {
     available: boolean;
-    offline?: boolean;
-    privacy?: string;
-    binary?: string;
-    version?: string;
     message?: string;
+    version?: string;
     dbReady?: boolean;
     dbDir?: string;
 };
@@ -57,28 +72,51 @@ function shortVersion(v?: string) {
     return m ? m[0] : v.split('\n')[0];
 }
 
+function formatSecs(ms?: number) {
+    if (typeof ms !== 'number') return '';
+    return (
+        (ms / 1000).toLocaleString('ru-RU', {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 2,
+        }) + ' с'
+    );
+}
+
 function App() {
     const [info, setInfo] = useState('');
-    const [appLabel, setAppLabel] = useState('v…');
+    const [appCredit, setAppCredit] = useState('v…');
+    const [authorURL, setAuthorURL] = useState('https://github.com/bambutcha');
     const [engine, setEngine] = useState<EngineInfo | null>(null);
     const [busy, setBusy] = useState(false);
     const [updating, setUpdating] = useState(false);
     const [checkingUpd, setCheckingUpd] = useState(false);
     const [applyingUpd, setApplyingUpd] = useState(false);
     const [result, setResult] = useState<ScanResult | null>(null);
+    const [history, setHistory] = useState<HistoryEntry[]>([]);
     const [error, setError] = useState('');
     const [updateMsg, setUpdateMsg] = useState('');
     const [appUpdate, setAppUpdate] = useState<UpdateInfo | null>(null);
 
+    const refreshHistory = useCallback(() => {
+        ScanHistory()
+            .then((v) => setHistory((v as HistoryEntry[]) || []))
+            .catch(() => undefined);
+    }, []);
+
     useEffect(() => {
         AppInfo().then(setInfo).catch(() => undefined);
         AppVersion()
-            .then((v) => setAppLabel(String((v as {label?: string}).label || 'v?')))
+            .then((v) => {
+                const o = v as {credit?: string; label?: string; authorURL?: string};
+                setAppCredit(String(o.credit || o.label || 'v?'));
+                if (o.authorURL) setAuthorURL(o.authorURL);
+            })
             .catch(() => undefined);
         EngineStatus()
             .then((v) => setEngine(v as EngineInfo))
             .catch((e) => setError(String(e)));
-    }, []);
+        refreshHistory();
+    }, [refreshHistory]);
 
     const engineOk = Boolean(engine?.available);
     const dbOk = Boolean(engine?.dbReady);
@@ -95,18 +133,38 @@ function App() {
         }
     }, [result?.status]);
 
-    async function pickAndScan() {
-        setError('');
+    async function runScan(path: string) {
+        if (!path) return;
+        setBusy(true);
         setResult(null);
+        setError('');
         try {
-            const path = await PickFile();
-            if (!path) return;
-            setBusy(true);
             setResult((await ScanPath(path)) as ScanResult);
+            refreshHistory();
         } catch (e) {
             setError(String(e));
         } finally {
             setBusy(false);
+        }
+    }
+
+    async function pickFileAndScan() {
+        setError('');
+        try {
+            const path = await PickFile();
+            await runScan(path);
+        } catch (e) {
+            setError(String(e));
+        }
+    }
+
+    async function pickFolderAndScan() {
+        setError('');
+        try {
+            const path = await PickFolder();
+            await runScan(path);
+        } catch (e) {
+            setError(String(e));
         }
     }
 
@@ -152,16 +210,16 @@ function App() {
         try {
             const res = (await ApplyAppUpdate()) as UpdateInfo;
             setAppUpdate(res);
-            if (res.ok) {
-                AppVersion()
-                    .then((v) => setAppLabel(String((v as {label?: string}).label || 'v?')))
-                    .catch(() => undefined);
-            }
         } catch (e) {
             setError(String(e));
         } finally {
             setApplyingUpd(false);
         }
+    }
+
+    async function clearHistory() {
+        await ClearScanHistory();
+        refreshHistory();
     }
 
     return (
@@ -175,7 +233,14 @@ function App() {
                         <h1 className="brand-mark font-display font-extrabold text-ink">LocalGuard</h1>
                     </div>
                     <div className="text-right">
-                        <p className="font-mono text-[0.8rem] font-medium text-ink-soft">{appLabel}</p>
+                        <button
+                            type="button"
+                            className="font-mono text-[0.8rem] font-medium text-ink-soft underline-offset-2 hover:underline"
+                            title="Автор на GitHub"
+                            onClick={() => OpenURL(authorURL)}
+                        >
+                            {appCredit}
+                        </button>
                         {info && (
                             <p className="mt-1 max-w-[16rem] font-mono text-[0.7rem] leading-snug text-ink-mute hide-short sm:max-w-xs">
                                 {info}
@@ -209,11 +274,19 @@ function App() {
                 >
                     <button
                         type="button"
-                        className="btn-primary min-h-[3rem] flex-1 px-5 py-3 text-[clamp(0.95rem,2.2vw,1.15rem)]"
-                        onClick={pickAndScan}
+                        className="btn-primary min-h-[3rem] flex-1 px-5 py-3 text-[clamp(0.9rem,2vw,1.1rem)]"
+                        onClick={pickFileAndScan}
                         disabled={busy || updating}
                     >
-                        {busy ? 'Сканирование…' : 'Выбрать файл и проверить'}
+                        {busy ? 'Сканирование…' : 'Файл'}
+                    </button>
+                    <button
+                        type="button"
+                        className="btn-primary min-h-[3rem] flex-1 px-5 py-3 text-[clamp(0.9rem,2vw,1.1rem)]"
+                        onClick={pickFolderAndScan}
+                        disabled={busy || updating}
+                    >
+                        {busy ? 'Сканирование…' : 'Папка'}
                     </button>
                     <div className="flex shrink-0 flex-wrap gap-2 stack-xs">
                         <button
@@ -222,7 +295,7 @@ function App() {
                             onClick={updateDatabases}
                             disabled={busy || updating}
                         >
-                            {updating ? 'Обновление…' : 'Базы'}
+                            {updating ? '…' : 'Базы'}
                         </button>
                         <button
                             type="button"
@@ -280,13 +353,14 @@ function App() {
                     </div>
                 )}
 
-                <div className="scroll-pane flex-1">
+                <div className="scroll-pane flex-1 space-y-6">
                     {result ? (
                         <article
                             className={`result-block border-l-[3px] pl-[clamp(0.75rem,2vw,1.1rem)] ${resultTone}`}
                         >
                             <p className="font-display text-[clamp(1.4rem,3.5vw,2rem)] font-bold leading-none">
                                 {statusRu[result.status] || result.status}
+                                {result.isDir ? ' · папка' : ''}
                             </p>
                             {result.message && (
                                 <p className="mt-2 max-w-prose text-sm text-ink-soft">{result.message}</p>
@@ -311,13 +385,7 @@ function App() {
                                 {typeof result.durationMs === 'number' && (
                                     <div>
                                         <dt className="uppercase tracking-wider">Время</dt>
-                                        <dd className="mt-0.5">
-                                            {(result.durationMs / 1000).toLocaleString('ru-RU', {
-                                                minimumFractionDigits: 1,
-                                                maximumFractionDigits: 2,
-                                            })}{' '}
-                                            с
-                                        </dd>
+                                        <dd className="mt-0.5">{formatSecs(result.durationMs)}</dd>
                                     </div>
                                 )}
                                 {result.engine && (
@@ -327,13 +395,60 @@ function App() {
                                     </div>
                                 )}
                             </dl>
+                            {result.hits && result.hits.length > 0 && (
+                                <ul className="mt-4 max-h-40 space-y-2 overflow-auto font-mono text-[0.7rem] text-signal-danger">
+                                    {result.hits.map((h) => (
+                                        <li key={h.path + h.threat} className="break-all">
+                                            <span className="text-ink-soft">{h.threat}</span>
+                                            <br />
+                                            {h.path}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </article>
                     ) : (
                         <p className="max-w-md font-mono text-[0.75rem] leading-relaxed text-ink-mute hide-short">
-                            Выберите документ или архив. Проверка идёт только на этом компьютере — байты файла
-                            никуда не отправляются. Сеть нужна лишь для обновления сигнатур и проверки версии
-                            приложения.
+                            Выберите файл или папку. Проверка только на этом компьютере. Папка сканируется
+                            рекурсивно.
                         </p>
+                    )}
+
+                    {history.length > 0 && (
+                        <section className="hide-short">
+                            <div className="mb-2 flex items-baseline justify-between gap-2">
+                                <h2 className="font-display text-sm font-bold tracking-wide text-ink">История</h2>
+                                <button
+                                    type="button"
+                                    className="font-mono text-[0.65rem] text-ink-mute underline-offset-2 hover:underline"
+                                    onClick={clearHistory}
+                                >
+                                    очистить
+                                </button>
+                            </div>
+                            <ul className="space-y-2 border-t border-ink/15 pt-2 font-mono text-[0.68rem] text-ink-mute">
+                                {history.slice(0, 12).map((h, i) => (
+                                    <li key={(h.scannedAt || '') + h.path + i} className="flex flex-wrap gap-x-3 gap-y-0.5">
+                                        <span
+                                            className={
+                                                h.status === 'infected'
+                                                    ? 'text-signal-danger'
+                                                    : h.status === 'clean'
+                                                      ? 'text-signal'
+                                                      : ''
+                                            }
+                                        >
+                                            {statusRu[h.status] || h.status}
+                                        </span>
+                                        <span className="min-w-0 flex-1 truncate text-ink-soft" title={h.path}>
+                                            {h.isDir ? '📁 ' : ''}
+                                            {h.path}
+                                        </span>
+                                        <span className="shrink-0">{formatSecs(h.durationMs)}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
                     )}
                 </div>
             </main>
