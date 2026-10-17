@@ -272,7 +272,7 @@ function App() {
                         <p className="mb-1 font-mono text-[0.65rem] uppercase tracking-[0.22em] text-ink-mute">
                             offline · файлы не уходят в сеть
                         </p>
-                        <h1 className="brand-mark font-display font-extrabold text-ink">LocalGuard</h1>
+                        <h1 className="brand-mark font-display font-extrabold text-ink">YagaAegis</h1>
                     </div>
                     <div className="text-right">
                         <button

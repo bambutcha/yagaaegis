@@ -89,7 +89,7 @@ func Check(ctx context.Context) Result {
 }
 
 // Apply скачивает portable-пакет и распаковывает поверх installDir.
-// Текущий LocalGuard переименовывается в .old — нужен перезапуск.
+// Текущий YagaAegis переименовывается в .old — нужен перезапуск.
 func Apply(ctx context.Context, installDir string) Result {
 	res := Check(ctx)
 	if !res.OK {
@@ -111,7 +111,7 @@ func Apply(ctx context.Context, installDir string) Result {
 		return res
 	}
 
-	tmp, err := os.MkdirTemp("", "localguard-upd-*")
+	tmp, err := os.MkdirTemp("", "yagaaegis-upd-*")
 	if err != nil {
 		res.OK = false
 		res.Message = err.Error()
@@ -159,7 +159,7 @@ func Apply(ctx context.Context, installDir string) Result {
 	res.OK = true
 	res.NeedRestart = true
 	res.HasUpdate = false
-	res.Message = fmt.Sprintf("Установлена %s. Закройте LocalGuard и запустите снова.", versionLabel(res.Latest))
+	res.Message = fmt.Sprintf("Установлена %s. Закройте YagaAegis и запустите снова.", versionLabel(res.Latest))
 	return res
 }
 
@@ -169,7 +169,7 @@ func fetchLatest(ctx context.Context) (*ghRelease, error) {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "LocalGuard/"+version.String)
+	req.Header.Set("User-Agent", "YagaAegis/"+version.String)
 
 	client := &http.Client{Timeout: 45 * time.Second}
 	res, err := client.Do(req)
@@ -216,7 +216,7 @@ func downloadFile(ctx context.Context, url, dest string) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "LocalGuard/"+version.String)
+	req.Header.Set("User-Agent", "YagaAegis/"+version.String)
 	client := &http.Client{Timeout: 30 * time.Minute}
 	res, err := client.Do(req)
 	if err != nil {
@@ -236,7 +236,7 @@ func downloadFile(ctx context.Context, url, dest string) error {
 }
 
 func findPayloadRoot(extractDir string) (string, error) {
-	// архив: linux-amd64/LocalGuard или сразу файлы
+	// архив: linux-amd64/YagaAegis или сразу файлы
 	candidates := []string{
 		filepath.Join(extractDir, "linux-amd64"),
 		filepath.Join(extractDir, "windows-amd64"),
@@ -260,11 +260,11 @@ func findPayloadRoot(extractDir string) (string, error) {
 			}
 		}
 	}
-	return "", fmt.Errorf("в архиве не найден LocalGuard")
+	return "", fmt.Errorf("в архиве не найден YagaAegis")
 }
 
 func hasAppBinary(dir string) bool {
-	for _, n := range []string{"LocalGuard", "LocalGuard.exe"} {
+	for _, n := range []string{"YagaAegis", "YagaAegis.exe"} {
 		if st, err := os.Stat(filepath.Join(dir, n)); err == nil && !st.IsDir() {
 			return true
 		}
@@ -290,7 +290,7 @@ func mergePayload(src, dst string) error {
 		}
 		base := filepath.Base(path)
 		// запущенный бинарник — пишем во временный и атомарно подменяем
-		if base == "LocalGuard" || strings.EqualFold(base, "LocalGuard.exe") {
+		if base == "YagaAegis" || strings.EqualFold(base, "YagaAegis.exe") {
 			return replaceRunningBinary(path, target)
 		}
 		return copyFile(path, target, info.Mode())

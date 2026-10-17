@@ -108,7 +108,9 @@ Section "uninstall"
     !insertmacro wails.setShellContext
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # WebView2 DataPath
-    # Базы CVD / данные LocalGuard
+    # Базы CVD / данные YagaAegis (+ прежний LocalGuard)
+    RMDir /r "$APPDATA\yagaaegis"
+    RMDir /r "$LOCALAPPDATA\yagaaegis"
     RMDir /r "$APPDATA\localguard"
     RMDir /r "$LOCALAPPDATA\localguard"
 

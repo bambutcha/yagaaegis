@@ -10,7 +10,7 @@ import (
 //
 // Ожидаемая раскладка дистрибутива:
 //
-//	LocalGuard(.exe)
+//	YagaAegis(.exe)
 //	runtime/
 //	  linux-amd64/clamscan   или  windows-amd64/clamscan.exe
 //	  + нужные .so / .dll

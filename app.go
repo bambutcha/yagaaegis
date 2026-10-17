@@ -32,7 +32,7 @@ func NewApp(log *slog.Logger) *App {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	a.log.Info("старт LocalGuard", "version", version.Label(), "author", version.Author)
+	a.log.Info("старт YagaAegis", "version", version.Label(), "author", version.Author)
 	if eng, err := scanner.DetectEngine(a.log); err == nil {
 		a.engine = eng
 	} else {

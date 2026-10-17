@@ -34,9 +34,16 @@ func Dir() (string, error) {
 		}
 		base = filepath.Join(home, ".config")
 	}
-	dir := filepath.Join(base, "localguard", "clamav")
+	dir := filepath.Join(base, "yagaaegis", "clamav")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
+	}
+	// миграция с прежнего каталога LocalGuard (без SeedFrom — иначе рекурсия в Dir)
+	if !HasDatabases(dir) {
+		legacy := filepath.Join(base, "localguard", "clamav")
+		if HasDatabases(legacy) {
+			_ = copyCVD(legacy, dir)
+		}
 	}
 	return dir, nil
 }
@@ -122,6 +129,13 @@ func SeedFrom(srcDir string) error {
 	if HasDatabases(dst) {
 		return nil
 	}
+	return copyCVD(srcDir, dst)
+}
+
+func copyCVD(srcDir, dst string) error {
+	if err := os.MkdirAll(dst, 0o755); err != nil {
+		return err
+	}
 	copied := 0
 	for _, name := range dbFiles {
 		src := filepath.Join(srcDir, name)
@@ -186,7 +200,7 @@ func needsDownload(ctx context.Context, client *http.Client, url, dest string) (
 	if err != nil {
 		return false, 0, err
 	}
-	req.Header.Set("User-Agent", "LocalGuard/"+version.String+" (+https://github.com/bambutcha/localguard)")
+	req.Header.Set("User-Agent", "YagaAegis/"+version.String+" (+https://github.com/bambutcha/localguard)")
 	res, err := client.Do(req)
 	if err != nil {
 		return false, 0, err
@@ -215,7 +229,7 @@ func downloadFile(ctx context.Context, client *http.Client, url, dest string) er
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "LocalGuard/"+version.String+" (+https://github.com/bambutcha/localguard)")
+	req.Header.Set("User-Agent", "YagaAegis/"+version.String+" (+https://github.com/bambutcha/localguard)")
 	res, err := client.Do(req)
 	if err != nil {
 		return err

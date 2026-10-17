@@ -1,4 +1,4 @@
-// LocalGuard Uninstall — один бинарник для Linux и Windows.
+// YagaAegis Uninstall — один бинарник для Linux и Windows.
 //
 //	Uninstall              — интерактивно (спросит подтверждение)
 //	Uninstall -yes         — без вопросов, снести всё включая базы
@@ -23,7 +23,7 @@ func main() {
 	dirFlag := flag.String("dir", "", "каталог установки (по умолчанию — папка рядом с Uninstall)")
 	flag.Parse()
 
-	fmt.Printf("LocalGuard Uninstall %s\n", version.Label())
+	fmt.Printf("YagaAegis Uninstall %s\n", version.Label())
 
 	dir := *dirFlag
 	if dir == "" {
@@ -43,7 +43,7 @@ func main() {
 	}
 
 	if !*yes {
-		fmt.Print("Удалить LocalGuard? [y/N]: ")
+		fmt.Print("Удалить YagaAegis? [y/N]: ")
 		line, _ := bufio.NewReader(os.Stdin).ReadString('\n')
 		line = strings.TrimSpace(strings.ToLower(line))
 		if line != "y" && line != "yes" && line != "д" && line != "да" {
@@ -61,7 +61,7 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	fmt.Println("LocalGuard удалён.")
+	fmt.Println("YagaAegis удалён.")
 }
 
 func fail(err error) {

@@ -23,7 +23,7 @@ func main() {
 	app := NewApp(log)
 
 	err := wails.Run(&options.App{
-		Title:  "LocalGuard " + version.Label(),
+		Title:  "YagaAegis " + version.Label(),
 		Width:  1024,
 		Height: 768,
 		MinWidth:  360,

@@ -53,7 +53,7 @@ func TestBundledRuntimeScan(t *testing.T) {
 	t.Log("version:", ver)
 
 	clean := filepath.Join(t.TempDir(), "clean.txt")
-	if err := os.WriteFile(clean, []byte("localguard clean"), 0o644); err != nil {
+	if err := os.WriteFile(clean, []byte("yagaaegis clean"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	res := eng.ScanFile(ctx, clean)

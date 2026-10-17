@@ -55,8 +55,8 @@ jobs:
           ./scripts/package.sh linux amd64
       - uses: actions/upload-artifact@v4
         with:
-          name: localguard-linux-amd64
-          path: dist/LocalGuard-linux-amd64.tar.gz
+          name: yagaaegis-linux-amd64
+          path: dist/YagaAegis-linux-amd64.tar.gz
 
   windows:
     needs: test
@@ -85,15 +85,14 @@ jobs:
           export PATH="$PATH:$(go env GOPATH)/bin:/c/Program Files (x86)/NSIS:/c/Program Files/NSIS"
           chmod +x scripts/*.sh
           ./scripts/package.sh windows amd64 --nsis
-          # если installer лежит в build/bin
           mkdir -p dist
           cp -a build/bin/*-installer.exe dist/ 2>/dev/null || true
           ls -la dist/ build/bin/ || true
       - uses: actions/upload-artifact@v4
         with:
-          name: localguard-windows-amd64
+          name: yagaaegis-windows-amd64
           path: |
-            dist/LocalGuard-windows-amd64.zip
+            dist/YagaAegis-windows-amd64.zip
             dist/*-installer.exe
             build/bin/*-installer.exe
 

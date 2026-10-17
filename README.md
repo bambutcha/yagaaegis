@@ -1,4 +1,4 @@
-# LocalGuard `v0.3.3`
+# YagaAegis `v0.4.0`
 
 Автор: [bambutcha](https://github.com/bambutcha)
 
@@ -11,13 +11,13 @@
 
 | Платформа | Артефакт |
 |-----------|----------|
-| Linux | `LocalGuard-linux-amd64.tar.gz` — бинарник + `runtime/` + `seed/` (~130 MB сжатый) |
-| Windows | `LocalGuard-windows-amd64.zip` / `*-installer.exe` (~250 MB: seed CVD ≈108 MB + ClamAV runtime) |
+| Linux | `YagaAegis-linux-amd64.tar.gz` — бинарник + `runtime/` + `seed/` (~130 MB сжатый) |
+| Windows | `YagaAegis-windows-amd64.zip` / `*-installer.exe` (~250 MB: seed CVD ≈108 MB + ClamAV runtime) |
 
 Внутри:
 
 ```
-LocalGuard[.exe]
+YagaAegis[.exe]
 Uninstall[.exe]       ← удаление приложения + данных (linux/windows)
 runtime/<os>-amd64/   ← clamscan + libs + certs
 seed/                 ← CVD на первый офлайн-запуск
@@ -29,9 +29,9 @@ seed/                 ← CVD на первый офлайн-запуск
 # Linux (из папки дистрибутива)
 ./Uninstall          # спросит подтверждение
 ./Uninstall -yes     # сразу
-./Uninstall -yes -keep-data   # оставить ~/.config/localguard
+./Uninstall -yes -keep-data   # оставить ~/.config/yagaaegis
 
-# Windows portable — Uninstall.exe рядом с LocalGuard.exe
+# Windows portable — Uninstall.exe рядом с YagaAegis.exe
 # Windows NSIS — «Удаление» в меню Пуск или Uninstall.exe / штатный uninstaller
 ```
 
@@ -47,14 +47,14 @@ seed/                 ← CVD на первый офлайн-запуск
 ## Версии
 
 Источник правды: `internal/version/version.go` (+ `wails.json` `productVersion`).  
-Правило для агента: `.cursor/rules/localguard-versioning.mdc` (как в Orvum).
+Правило для агента: `.cursor/rules/yagaaegis-versioning.mdc` (как в Orvum).
 
 ## Сборка
 
 ```bash
 chmod +x scripts/*.sh
 ./scripts/package.sh linux amd64
-# → dist/LocalGuard-linux-amd64.tar.gz
+# → dist/YagaAegis-linux-amd64.tar.gz
 
 # на Windows (или CI):
 ./scripts/package.sh windows amd64 --nsis
@@ -70,4 +70,4 @@ wails dev
 
 ## Лицензия
 
-MIT (код LocalGuard). ClamAV в runtime — GPL-2.0; соблюдайте условия GPL при распространении бинарников с движком.
+MIT (код YagaAegis). ClamAV в runtime — GPL-2.0; соблюдайте условия GPL при распространении бинарников с движком.

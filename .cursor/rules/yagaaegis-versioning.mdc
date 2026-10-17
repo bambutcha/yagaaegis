@@ -1,9 +1,9 @@
 ---
-description: LocalGuard SemVer — track versions; MAJOR only with user approval
+description: YagaAegis SemVer — track versions; MAJOR only with user approval
 alwaysApply: true
 ---
 
-# LocalGuard — версии (SemVer)
+# YagaAegis — версии (SemVer)
 
 Источник правды: `internal/version/version.go` (`version.String` / `version.Label()`).  
 UI читает оттуда через `App.AppVersion()` — **после смены версии строка в UI обновляется сама**.

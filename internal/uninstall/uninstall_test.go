@@ -9,11 +9,11 @@ import (
 
 func TestRunRemovesInstallAndData(t *testing.T) {
 	root := t.TempDir()
-	install := filepath.Join(root, "LocalGuardApp")
+	install := filepath.Join(root, "YagaAegisApp")
 	if err := os.MkdirAll(filepath.Join(install, "runtime"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(install, "LocalGuard"), []byte("x"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(install, "YagaAegis"), []byte("x"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(filepath.Join(install, "seed"), 0o755); err != nil {
@@ -38,7 +38,7 @@ func TestRunRemovesInstallAndData(t *testing.T) {
 	if err := Run(Options{InstallDir: install, KeepUserData: false}, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(install, "LocalGuard")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(install, "YagaAegis")); !os.IsNotExist(err) {
 		t.Fatalf("app file still exists: %v", err)
 	}
 	if _, err := os.Stat(ud); !os.IsNotExist(err) {
@@ -50,7 +50,7 @@ func TestKeepUserData(t *testing.T) {
 	root := t.TempDir()
 	install := filepath.Join(root, "app")
 	_ = os.MkdirAll(install, 0o755)
-	_ = os.WriteFile(filepath.Join(install, "LocalGuard"), []byte("x"), 0o755)
+	_ = os.WriteFile(filepath.Join(install, "YagaAegis"), []byte("x"), 0o755)
 
 	home := t.TempDir()
 	t.Setenv("HOME", home)

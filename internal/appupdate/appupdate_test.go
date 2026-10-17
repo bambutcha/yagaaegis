@@ -12,7 +12,7 @@ func TestFindPayloadRootAndMerge(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(plat, "runtime"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(plat, "LocalGuard"), []byte("newbin"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(plat, "YagaAegis"), []byte("newbin"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(plat, "runtime", "clamscan"), []byte("scan"), 0o755); err != nil {
@@ -28,11 +28,11 @@ func TestFindPayloadRootAndMerge(t *testing.T) {
 	}
 
 	dst := t.TempDir()
-	_ = os.WriteFile(filepath.Join(dst, "LocalGuard"), []byte("old"), 0o755)
+	_ = os.WriteFile(filepath.Join(dst, "YagaAegis"), []byte("old"), 0o755)
 	if err := mergePayload(root, dst); err != nil {
 		t.Fatal(err)
 	}
-	b, err := os.ReadFile(filepath.Join(dst, "LocalGuard"))
+	b, err := os.ReadFile(filepath.Join(dst, "YagaAegis"))
 	if err != nil {
 		t.Fatal(err)
 	}

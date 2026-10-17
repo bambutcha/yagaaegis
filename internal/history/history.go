@@ -33,11 +33,18 @@ func filePath() (string, error) {
 		}
 		base = filepath.Join(home, ".config")
 	}
-	dir := filepath.Join(base, "localguard")
+	dir := filepath.Join(base, "yagaaegis")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "history.json"), nil
+	path := filepath.Join(dir, "history.json")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		legacy := filepath.Join(base, "localguard", "history.json")
+		if b, err := os.ReadFile(legacy); err == nil {
+			_ = os.WriteFile(path, b, 0o644)
+		}
+	}
+	return path, nil
 }
 
 // List возвращает записи (новые сверху).

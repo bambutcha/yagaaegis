@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Самодостаточный дистрибутив: LocalGuard + runtime/ + seed/
+# Самодостаточный дистрибутив: YagaAegis + runtime/ + seed/
 #   ./scripts/package.sh linux amd64
 #   ./scripts/package.sh windows amd64 [--nsis]
 set -euo pipefail
@@ -14,8 +14,8 @@ done
 
 PLATFORM="${OS}-${ARCH}"
 DIST="${ROOT}/dist/${PLATFORM}"
-BIN_NAME="LocalGuard"
-[[ "$OS" == "windows" ]] && BIN_NAME="LocalGuard.exe"
+BIN_NAME="YagaAegis"
+[[ "$OS" == "windows" ]] && BIN_NAME="YagaAegis.exe"
 
 cd "$ROOT"
 export PATH="${PATH}:$(go env GOPATH)/bin"
@@ -74,14 +74,14 @@ fi
 echo "==> 5/5 архив"
 mkdir -p "${ROOT}/dist"
 if [[ "$OS" == "windows" ]]; then
-  ARCHIVE="${ROOT}/dist/LocalGuard-${PLATFORM}.zip"
+  ARCHIVE="${ROOT}/dist/YagaAegis-${PLATFORM}.zip"
   rm -f "$ARCHIVE"
   if command -v zip >/dev/null; then
     (cd "${ROOT}/dist" && zip -qr "$ARCHIVE" "${PLATFORM}")
   else
     # CI windows-latest часто без zip.exe
     powershell.exe -NoProfile -Command \
-      "Compress-Archive -Path 'dist/${PLATFORM}' -DestinationPath 'dist/LocalGuard-${PLATFORM}.zip' -Force"
+      "Compress-Archive -Path 'dist/${PLATFORM}' -DestinationPath 'dist/YagaAegis-${PLATFORM}.zip' -Force"
   fi
   shopt -s nullglob
   for f in "${ROOT}/build/bin/"*-installer.exe; do
@@ -89,7 +89,7 @@ if [[ "$OS" == "windows" ]]; then
     echo "installer: $f"
   done
 else
-  ARCHIVE="${ROOT}/dist/LocalGuard-${PLATFORM}.tar.gz"
+  ARCHIVE="${ROOT}/dist/YagaAegis-${PLATFORM}.tar.gz"
   (cd "${ROOT}/dist" && tar -czf "$ARCHIVE" "${PLATFORM}")
 fi
 

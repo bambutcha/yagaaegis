@@ -1,4 +1,4 @@
-// Package uninstall — удаление LocalGuard на Linux и Windows.
+// Package uninstall — удаление YagaAegis на Linux и Windows.
 package uninstall
 
 import (
@@ -13,9 +13,9 @@ import (
 
 // Options — что снести.
 type Options struct {
-	// InstallDir — папка с LocalGuard (обычно рядом с Uninstall).
+	// InstallDir — папка с YagaAegis (обычно рядом с Uninstall).
 	InstallDir string
-	// KeepUserData — не трогать ~/.config/localguard (базы CVD и т.п.).
+	// KeepUserData — не трогать ~/.config/yagaaegis (базы CVD и т.п.).
 	KeepUserData bool
 }
 
@@ -24,15 +24,31 @@ type Progress func(fraction float64, status string)
 
 // UserDataDir — каталог данных приложения (базы сигнатур и т.д.).
 func UserDataDir() string {
+	base := userConfigBase()
+	if base == "" {
+		return ""
+	}
+	return filepath.Join(base, "yagaaegis")
+}
+
+func legacyUserDataDir() string {
+	base := userConfigBase()
+	if base == "" {
+		return ""
+	}
+	return filepath.Join(base, "localguard")
+}
+
+func userConfigBase() string {
 	base, err := os.UserConfigDir()
 	if err != nil {
 		home, herr := os.UserHomeDir()
 		if herr != nil {
 			return ""
 		}
-		base = filepath.Join(home, ".config")
+		return filepath.Join(home, ".config")
 	}
-	return filepath.Join(base, "localguard")
+	return base
 }
 
 // InstallDirFromExe — каталог установки = папка Uninstall[.exe].
@@ -72,8 +88,10 @@ func Run(opt Options, progress Progress) error {
 
 	if !opt.KeepUserData {
 		step(0.2, "данные пользователя")
-		if ud := UserDataDir(); ud != "" && !looksDangerous(ud) {
-			_ = os.RemoveAll(ud)
+		for _, ud := range []string{UserDataDir(), legacyUserDataDir()} {
+			if ud != "" && !looksDangerous(ud) {
+				_ = os.RemoveAll(ud)
+			}
 		}
 	}
 
@@ -143,14 +161,19 @@ func removeShortcuts() error {
 	if runtime.GOOS == "windows" {
 		desktop := windowsDesktopDir()
 		if desktop != "" {
-			_ = os.Remove(filepath.Join(desktop, "LocalGuard.lnk"))
+			for _, name := range []string{"YagaAegis.lnk", "LocalGuard.lnk"} {
+				_ = os.Remove(filepath.Join(desktop, name))
+			}
 		}
 		base := os.Getenv("AppData")
 		if base == "" {
 			home, _ := os.UserHomeDir()
 			base = filepath.Join(home, "AppData", "Roaming")
 		}
-		_ = os.Remove(filepath.Join(base, "Microsoft", "Windows", "Start Menu", "Programs", "LocalGuard.lnk"))
+		start := filepath.Join(base, "Microsoft", "Windows", "Start Menu", "Programs")
+		for _, name := range []string{"YagaAegis.lnk", "LocalGuard.lnk"} {
+			_ = os.Remove(filepath.Join(start, name))
+		}
 		return nil
 	}
 	// Linux: .desktop если ставили
@@ -159,7 +182,10 @@ func removeShortcuts() error {
 		return nil
 	}
 	for _, p := range []string{
+		filepath.Join(home, ".local", "share", "applications", "yagaaegis.desktop"),
 		filepath.Join(home, ".local", "share", "applications", "localguard.desktop"),
+		filepath.Join(home, "Desktop", "yagaaegis.desktop"),
+		filepath.Join(home, "Desktop", "YagaAegis.desktop"),
 		filepath.Join(home, "Desktop", "localguard.desktop"),
 		filepath.Join(home, "Desktop", "LocalGuard.desktop"),
 	} {
@@ -180,7 +206,7 @@ func windowsDesktopDir() string {
 }
 
 func scheduleWindowsSelfDelete(installDir string) error {
-	tmp := filepath.Join(os.TempDir(), fmt.Sprintf("localguard-uninst-%d.bat", time.Now().UnixNano()))
+	tmp := filepath.Join(os.TempDir(), fmt.Sprintf("yagaaegis-uninst-%d.bat", time.Now().UnixNano()))
 	body := fmt.Sprintf("@echo off\r\n"+
 		"ping 127.0.0.1 -n 3 >nul\r\n"+
 		"rd /s /q \"%s\"\r\n"+
