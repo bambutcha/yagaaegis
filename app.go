@@ -173,9 +173,11 @@ func (a *App) PickFile() (string, error) {
 	return runtime.OpenFileDialog(a.baseCtx(), runtime.OpenDialogOptions{
 		Title: "Выберите файл для локальной проверки",
 		Filters: []runtime.FileFilter{
+			// Первый в списке = выбранный по умолчанию в системном диалоге
+			{DisplayName: "Все файлы", Pattern: "*.*"},
 			{DisplayName: "Документы", Pattern: "*.pdf;*.doc;*.docx;*.odt;*.xls;*.xlsx;*.ppt;*.pptx"},
 			{DisplayName: "Архивы", Pattern: "*.zip;*.rar;*.7z;*.tar;*.gz"},
-			{DisplayName: "Все файлы", Pattern: "*.*"},
+			{DisplayName: "Исполняемые", Pattern: "*.exe;*.dll;*.msi;*.bat;*.cmd;*.ps1;*.sh;*.jar"},
 		},
 	})
 }
