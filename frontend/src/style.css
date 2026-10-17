@@ -200,3 +200,18 @@ body {
   background: rgba(18, 20, 15, 0.28);
   border-radius: 4px;
 }
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-enter {
+  animation: toastIn 0.28s ease-out both;
+}

@@ -159,13 +159,15 @@ func (a *App) UpdateDatabases() map[string]any {
 	defer cancel()
 	res := sigdb.Update(ctx, a.log, nil)
 	out := map[string]any{
-		"ok":      res.OK,
-		"dir":     res.Dir,
-		"mirror":  res.Mirror,
-		"message": res.Message,
-		"files":   res.Files,
+		"ok":       res.OK,
+		"dir":      res.Dir,
+		"mirror":   res.Mirror,
+		"message":  res.Message,
+		"files":    res.Files,
+		"upToDate": res.UpToDate,
+		"changed":  res.Changed,
 	}
-	if res.OK {
+	if res.OK && res.Changed > 0 {
 		a.engine = nil
 		_ = a.ensureEngine()
 	}

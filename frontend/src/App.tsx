@@ -13,6 +13,7 @@ import {
     ScanPath,
     UpdateDatabases,
 } from '../wailsjs/go/main/App';
+import {pushToast, ToastHost} from './toast';
 
 type Hit = {path: string; threat: string};
 
@@ -94,7 +95,6 @@ function App() {
     const [result, setResult] = useState<ScanResult | null>(null);
     const [history, setHistory] = useState<HistoryEntry[]>([]);
     const [error, setError] = useState('');
-    const [updateMsg, setUpdateMsg] = useState('');
     const [appUpdate, setAppUpdate] = useState<UpdateInfo | null>(null);
 
     const refreshHistory = useCallback(() => {
@@ -171,22 +171,41 @@ function App() {
     async function refreshEngine() {
         setError('');
         try {
-            setEngine((await EngineStatus()) as EngineInfo);
+            const st = (await EngineStatus()) as EngineInfo;
+            setEngine(st);
+            if (st.available && st.dbReady) {
+                pushToast(st.message || 'Движок и базы готовы', 'ok');
+            } else if (st.available) {
+                pushToast(st.message || 'Движок есть, баз нет', 'warn');
+            } else {
+                pushToast(st.message || 'Движок недоступен', 'err');
+            }
         } catch (e) {
-            setError(String(e));
+            pushToast(String(e), 'err');
         }
     }
 
     async function updateDatabases() {
         setError('');
-        setUpdateMsg('');
         setUpdating(true);
+        pushToast('Проверяю базы…', 'info', 2000);
         try {
-            const res = (await UpdateDatabases()) as {ok?: boolean; message?: string};
-            setUpdateMsg(res.message || (res.ok ? 'Базы обновлены' : 'Ошибка обновления'));
+            const res = (await UpdateDatabases()) as {
+                ok?: boolean;
+                message?: string;
+                upToDate?: boolean;
+                changed?: number;
+            };
+            if (!res.ok) {
+                pushToast(res.message || 'Ошибка обновления баз', 'err');
+            } else if (res.upToDate) {
+                pushToast(res.message || 'Базы уже актуальны', 'ok');
+            } else {
+                pushToast(res.message || 'Базы обновлены', 'ok');
+            }
             setEngine((await EngineStatus()) as EngineInfo);
         } catch (e) {
-            setError(String(e));
+            pushToast(String(e), 'err');
         } finally {
             setUpdating(false);
         }
@@ -195,10 +214,19 @@ function App() {
     async function checkAppUpdate() {
         setError('');
         setCheckingUpd(true);
+        pushToast('Проверяю GitHub Releases…', 'info', 2000);
         try {
-            setAppUpdate((await CheckAppUpdate()) as UpdateInfo);
+            const res = (await CheckAppUpdate()) as UpdateInfo;
+            setAppUpdate(res);
+            if (!res.ok) {
+                pushToast(res.message || 'Не удалось проверить обновления', 'err');
+            } else if (res.hasUpdate) {
+                pushToast(res.message || 'Есть новая версия', 'warn', 6000);
+            } else {
+                pushToast(res.message || 'У вас актуальная версия', 'ok');
+            }
         } catch (e) {
-            setError(String(e));
+            pushToast(String(e), 'err');
         } finally {
             setCheckingUpd(false);
         }
@@ -207,11 +235,13 @@ function App() {
     async function applyAppUpdate() {
         setError('');
         setApplyingUpd(true);
+        pushToast('Скачиваю обновление…', 'info', 5000);
         try {
             const res = (await ApplyAppUpdate()) as UpdateInfo;
             setAppUpdate(res);
+            pushToast(res.message || (res.ok ? 'Готово' : 'Ошибка'), res.ok ? 'ok' : 'err', 7000);
         } catch (e) {
-            setError(String(e));
+            pushToast(String(e), 'err');
         } finally {
             setApplyingUpd(false);
         }
@@ -224,6 +254,7 @@ function App() {
 
     return (
         <div className="app-shell px-[clamp(0.85rem,3vw,2rem)] py-[clamp(0.75rem,2.5vh,1.5rem)]">
+            <ToastHost />
             <header className="shrink-0 animate-rise">
                 <div className="flex flex-wrap items-end justify-between gap-3 stack-xs">
                     <div className="min-w-0">
@@ -316,27 +347,22 @@ function App() {
                     </div>
                 </div>
 
-                {(error || updateMsg || appUpdate?.message) && (
+                {(error || (appUpdate?.hasUpdate && appUpdate.assetUrl)) && (
                     <div className="shrink-0 space-y-1 font-mono text-sm">
                         {error && <p className="text-signal-danger">{error}</p>}
-                        {updateMsg && <p className="text-ink-mute">{updateMsg}</p>}
-                        {appUpdate?.message && (
-                            <p className={appUpdate.hasUpdate || appUpdate.needRestart ? 'text-signal' : 'text-ink-mute'}>
-                                {appUpdate.message}
-                                {appUpdate.hasUpdate && appUpdate.assetUrl && (
-                                    <>
-                                        {' · '}
-                                        <button
-                                            type="button"
-                                            className="underline decoration-signal underline-offset-2 disabled:opacity-50"
-                                            onClick={applyAppUpdate}
-                                            disabled={applyingUpd}
-                                        >
-                                            {applyingUpd ? 'устанавливаю…' : 'установить'}
-                                        </button>
-                                    </>
-                                )}
-                                {appUpdate.hasUpdate && appUpdate.url && (
+                        {appUpdate?.hasUpdate && appUpdate.assetUrl && (
+                            <p className="text-signal">
+                                Новая версия доступна
+                                {' · '}
+                                <button
+                                    type="button"
+                                    className="underline decoration-signal underline-offset-2 disabled:opacity-50"
+                                    onClick={applyAppUpdate}
+                                    disabled={applyingUpd}
+                                >
+                                    {applyingUpd ? 'устанавливаю…' : 'установить'}
+                                </button>
+                                {appUpdate.url && (
                                     <>
                                         {' · '}
                                         <button

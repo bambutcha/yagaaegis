@@ -13,7 +13,7 @@
   "info": {
     "companyName": "bambutcha",
     "productName": "LocalGuard",
-    "productVersion": "0.3.0",
+    "productVersion": "0.3.1",
     "copyright": "Copyright 2026 bambutcha (https://github.com/bambutcha)",
     "comments": "LocalGuard by bambutcha — локальный сканер, файлы не уходят в сеть"
   }
