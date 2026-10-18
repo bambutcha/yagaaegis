@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {
     AppInfo,
     AppVersion,
@@ -472,72 +473,80 @@ function App() {
                 </footer>
             )}
 
-            {historyOpen && (
-                <div
-                    className="fixed inset-0 z-[90] flex items-end justify-center bg-ink/35 p-[clamp(0.5rem,2vw,1rem)] sm:items-center"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="История сканов"
-                    onClick={() => setHistoryOpen(false)}
-                >
+            {historyOpen &&
+                createPortal(
                     <div
-                        className="flex max-h-[min(70vh,32rem)] w-full max-w-lg flex-col border border-ink/20 bg-paper-mist shadow-stamp"
-                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-end justify-center bg-ink/35 p-[clamp(0.5rem,2vw,1rem)] sm:items-center"
+                        style={{position: 'fixed', inset: 0, zIndex: 90}}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="История сканов"
+                        onClick={() => setHistoryOpen(false)}
                     >
-                        <div className="flex items-center justify-between gap-3 border-b border-ink/15 px-4 py-3">
-                            <h2 className="font-display text-base font-bold text-ink">История</h2>
-                            <div className="flex gap-3 font-mono text-[0.7rem]">
-                                {history.length > 0 && (
+                        <div
+                            className="flex max-h-[min(70vh,32rem)] w-full max-w-lg flex-col border border-ink/20 bg-paper-mist shadow-stamp"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between gap-3 border-b border-ink/15 px-4 py-3">
+                                <h2 className="font-display text-base font-bold text-ink">История</h2>
+                                <div className="flex gap-3 font-mono text-[0.7rem]">
+                                    {history.length > 0 && (
+                                        <button
+                                            type="button"
+                                            className="text-ink-mute underline-offset-2 hover:underline"
+                                            onClick={clearHistory}
+                                        >
+                                            очистить
+                                        </button>
+                                    )}
                                     <button
                                         type="button"
-                                        className="text-ink-mute underline-offset-2 hover:underline"
-                                        onClick={clearHistory}
+                                        className="text-ink underline-offset-2 hover:underline"
+                                        onClick={() => setHistoryOpen(false)}
                                     >
-                                        очистить
+                                        закрыть
                                     </button>
-                                )}
-                                <button
-                                    type="button"
-                                    className="text-ink underline-offset-2 hover:underline"
-                                    onClick={() => setHistoryOpen(false)}
-                                >
-                                    закрыть
-                                </button>
+                                </div>
                             </div>
-                        </div>
-                        <ul className="scroll-pane flex-1 space-y-2 px-4 py-3 font-mono text-[0.7rem] text-ink-mute">
-                            {history.length === 0 ? (
-                                <li className="text-ink-mute">Пока пусто — после скана записи появятся здесь.</li>
-                            ) : (
-                                history.slice(0, 40).map((h, i) => (
-                                    <li
-                                        key={(h.scannedAt || '') + h.path + i}
-                                        className="flex flex-wrap gap-x-3 gap-y-0.5 border-b border-ink/10 pb-2"
-                                    >
-                                        <span
-                                            className={
-                                                h.status === 'infected'
-                                                    ? 'text-signal-danger'
-                                                    : h.status === 'clean'
-                                                      ? 'text-signal'
-                                                      : ''
-                                            }
-                                        >
-                                            {statusRu[h.status] || h.status}
-                                            {h.hitCount && h.hitCount > 1 ? ` ×${h.hitCount}` : ''}
-                                        </span>
-                                        <span className="min-w-0 flex-1 break-all text-ink-soft" title={h.path}>
-                                            {h.isDir ? '[dir] ' : ''}
-                                            {h.path}
-                                        </span>
-                                        <span className="shrink-0">{formatSecs(h.durationMs)}</span>
+                            <ul className="scroll-pane flex-1 space-y-2 px-4 py-3 font-mono text-[0.7rem] text-ink-mute">
+                                {history.length === 0 ? (
+                                    <li className="text-ink-mute">
+                                        Пока пусто — после скана записи появятся здесь.
                                     </li>
-                                ))
-                            )}
-                        </ul>
-                    </div>
-                </div>
-            )}
+                                ) : (
+                                    history.slice(0, 40).map((h, i) => (
+                                        <li
+                                            key={(h.scannedAt || '') + h.path + i}
+                                            className="flex flex-wrap gap-x-3 gap-y-0.5 border-b border-ink/10 pb-2"
+                                        >
+                                            <span
+                                                className={
+                                                    h.status === 'infected'
+                                                        ? 'text-signal-danger'
+                                                        : h.status === 'clean'
+                                                          ? 'text-signal'
+                                                          : ''
+                                                }
+                                            >
+                                                {statusRu[h.status] || h.status}
+                                                {h.hitCount && h.hitCount > 1 ? ` ×${h.hitCount}` : ''}
+                                            </span>
+                                            <span
+                                                className="min-w-0 flex-1 break-all text-ink-soft"
+                                                title={h.path}
+                                            >
+                                                {h.isDir ? '[dir] ' : ''}
+                                                {h.path}
+                                            </span>
+                                            <span className="shrink-0">{formatSecs(h.durationMs)}</span>
+                                        </li>
+                                    ))
+                                )}
+                            </ul>
+                        </div>
+                    </div>,
+                    document.body,
+                )}
         </div>
     );
 }

@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bambutcha/localguard/internal/runtimebin"
-	"github.com/bambutcha/localguard/internal/sigdb"
+	"github.com/bambutcha/yagaaegis/internal/runtimebin"
+	"github.com/bambutcha/yagaaegis/internal/sigdb"
 )
 
 const (

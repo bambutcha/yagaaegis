@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/bambutcha/localguard/internal/version"
+	"github.com/bambutcha/yagaaegis/internal/version"
 )
 
 // Зеркала CVD. Официальный CDN Cisco из РФ часто отвечает 403.
@@ -200,7 +200,7 @@ func needsDownload(ctx context.Context, client *http.Client, url, dest string) (
 	if err != nil {
 		return false, 0, err
 	}
-	req.Header.Set("User-Agent", "YagaAegis/"+version.String+" (+https://github.com/bambutcha/localguard)")
+	req.Header.Set("User-Agent", "YagaAegis/"+version.String+" (+https://github.com/bambutcha/yagaaegis)")
 	res, err := client.Do(req)
 	if err != nil {
 		return false, 0, err
@@ -229,7 +229,7 @@ func downloadFile(ctx context.Context, client *http.Client, url, dest string) er
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "YagaAegis/"+version.String+" (+https://github.com/bambutcha/localguard)")
+	req.Header.Set("User-Agent", "YagaAegis/"+version.String+" (+https://github.com/bambutcha/yagaaegis)")
 	res, err := client.Do(req)
 	if err != nil {
 		return err

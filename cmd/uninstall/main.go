@@ -13,8 +13,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bambutcha/localguard/internal/uninstall"
-	"github.com/bambutcha/localguard/internal/version"
+	"github.com/bambutcha/yagaaegis/internal/uninstall"
+	"github.com/bambutcha/yagaaegis/internal/version"
 )
 
 func main() {

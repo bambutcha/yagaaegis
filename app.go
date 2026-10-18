@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/bambutcha/localguard/internal/appupdate"
-	"github.com/bambutcha/localguard/internal/history"
-	"github.com/bambutcha/localguard/internal/scanner"
-	"github.com/bambutcha/localguard/internal/sigdb"
-	"github.com/bambutcha/localguard/internal/version"
+	"github.com/bambutcha/yagaaegis/internal/appupdate"
+	"github.com/bambutcha/yagaaegis/internal/history"
+	"github.com/bambutcha/yagaaegis/internal/scanner"
+	"github.com/bambutcha/yagaaegis/internal/sigdb"
+	"github.com/bambutcha/yagaaegis/internal/version"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 

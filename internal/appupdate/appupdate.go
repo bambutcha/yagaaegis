@@ -15,10 +15,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bambutcha/localguard/internal/version"
+	"github.com/bambutcha/yagaaegis/internal/version"
 )
 
-const githubAPI = "https://api.github.com/repos/bambutcha/localguard/releases/latest"
+const githubAPI = "https://api.github.com/repos/bambutcha/yagaaegis/releases/latest"
 
 // Result — ответ проверки / установки обновлений приложения (не баз ClamAV).
 type Result struct {

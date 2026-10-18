@@ -1,4 +1,4 @@
-module github.com/bambutcha/localguard
+module github.com/bambutcha/yagaaegis
 
 go 1.27
 

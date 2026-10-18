@@ -1,4 +1,4 @@
-# YagaAegis `v0.4.0`
+# YagaAegis `v0.4.1`
 
 Автор: [bambutcha](https://github.com/bambutcha)
 
