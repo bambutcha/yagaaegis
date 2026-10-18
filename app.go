@@ -35,8 +35,15 @@ func (a *App) startup(ctx context.Context) {
 	a.log.Info("старт YagaAegis", "version", version.Label(), "author", version.Author)
 	if eng, err := scanner.DetectEngine(a.log); err == nil {
 		a.engine = eng
+		go eng.Warmup(context.Background())
 	} else {
 		a.log.Warn("движок недоступен при старте", "err", err)
+	}
+}
+
+func (a *App) shutdown(ctx context.Context) {
+	if a.engine != nil {
+		a.engine.StopClamd()
 	}
 }
 

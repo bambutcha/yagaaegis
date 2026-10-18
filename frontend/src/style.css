@@ -52,8 +52,7 @@ body {
   flex-direction: column;
   min-height: 0;
   isolation: isolate;
-  overflow-x: hidden;
-  overflow-y: auto; /* узкое/низкое окно — скролл всего UI, кнопки не «съедают» результат */
+  overflow: hidden; /* скролл только в .scroll-pane — иначе лишняя полоса при большом окне */
 }
 
 .app-shell::before {

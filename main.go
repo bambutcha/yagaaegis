@@ -33,7 +33,8 @@ func main() {
 		},
 		// paper mist — совпадает с UI
 		BackgroundColour: &options.RGBA{R: 243, G: 240, B: 232, A: 1},
-		OnStartup:        app.startup,
+		OnStartup:  app.startup,
+		OnShutdown: app.shutdown,
 		Bind: []interface{}{
 			app,
 		},

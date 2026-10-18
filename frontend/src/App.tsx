@@ -16,7 +16,7 @@ import {
 } from '../wailsjs/go/main/App';
 import {pushToast, ToastHost} from './toast';
 
-type Hit = {path: string; threat: string};
+type Hit = {path: string; threat: string; kind?: string};
 
 type ScanResult = {
     path: string;
@@ -28,6 +28,8 @@ type ScanResult = {
     engine?: string;
     scannedAt?: string;
     durationMs?: number;
+    filesScanned?: number;
+    infectedCount?: number;
     message?: string;
     offline?: boolean;
 };
@@ -63,6 +65,7 @@ type UpdateInfo = {
 
 const statusRu: Record<string, string> = {
     clean: 'Чисто',
+    caution: 'Внимание',
     infected: 'Угроза',
     error: 'Ошибка',
     unavailable: 'Нет движка',
@@ -128,6 +131,8 @@ function App() {
         switch (result?.status) {
             case 'clean':
                 return 'border-signal text-signal';
+            case 'caution':
+                return 'border-signal-warn text-signal-warn';
             case 'infected':
                 return 'border-signal-danger text-signal-danger';
             default:
@@ -147,6 +152,8 @@ function App() {
             if (res.status === 'infected') {
                 const n = res.hits?.length || 1;
                 pushToast(n > 1 ? `Обнаружено угроз: ${n}` : `Угроза: ${res.threat || 'найдена'}`, 'err', 5000);
+            } else if (res.status === 'caution') {
+                pushToast(res.message || 'В документе есть скрипты/макросы', 'warn', 6500);
             } else if (res.status === 'clean') {
                 pushToast(res.isDir ? 'Папка чистая' : 'Файл чистый', 'ok');
             } else if (res.message) {
@@ -403,7 +410,7 @@ function App() {
                     </div>
                 )}
 
-                <div className="scroll-pane min-h-[7rem] flex-1 space-y-5">
+                <div className="scroll-pane min-h-[7rem] flex-1">
                     {result ? (
                         <article
                             className={`result-block border-l-[3px] pl-[clamp(0.75rem,2vw,1.1rem)] ${resultTone}`}
@@ -420,10 +427,32 @@ function App() {
                                     <dt className="uppercase tracking-wider">Путь</dt>
                                     <dd className="mt-0.5 break-all text-ink-soft">{result.path}</dd>
                                 </div>
-                                {result.threat && (
+                                {typeof result.filesScanned === 'number' && result.filesScanned > 0 && (
+                                    <div>
+                                        <dt className="uppercase tracking-wider">Файлов</dt>
+                                        <dd className="mt-0.5 text-ink-soft">
+                                            проверено {result.filesScanned}
+                                            {typeof result.infectedCount === 'number' && result.infectedCount > 0
+                                                ? ` · угроз ${result.infectedCount}`
+                                                : ''}
+                                            {typeof result.filesScanned === 'number' &&
+                                            typeof result.infectedCount === 'number' &&
+                                            result.filesScanned > result.infectedCount
+                                                ? ` · чистых ${result.filesScanned - result.infectedCount}`
+                                                : ''}
+                                        </dd>
+                                    </div>
+                                )}
+                                {result.threat && !(result.isDir && (result.hits?.length || 0) > 1) && (
                                     <div>
                                         <dt className="uppercase tracking-wider">Угроза</dt>
                                         <dd className="mt-0.5 text-signal-danger">{result.threat}</dd>
+                                    </div>
+                                )}
+                                {result.isDir && (result.hits?.length || 0) > 1 && result.threat && (
+                                    <div className="min-w-0 sm:col-span-2">
+                                        <dt className="uppercase tracking-wider">Сигнатуры</dt>
+                                        <dd className="mt-0.5 break-all text-signal-danger">{result.threat}</dd>
                                     </div>
                                 )}
                                 {result.sha256 && (
@@ -435,7 +464,9 @@ function App() {
                                 {typeof result.durationMs === 'number' && (
                                     <div>
                                         <dt className="uppercase tracking-wider">Время</dt>
-                                        <dd className="mt-0.5">{formatSecs(result.durationMs)}</dd>
+                                        <dd className="mt-0.5" title="Большая часть — загрузка баз ClamAV (~миллионы сигнатур), не размер файла">
+                                            {formatSecs(result.durationMs)}
+                                        </dd>
                                     </div>
                                 )}
                                 {result.engine && (
@@ -446,10 +477,18 @@ function App() {
                                 )}
                             </dl>
                             {result.hits && result.hits.length > 0 && (
-                                <ul className="mt-4 max-h-40 space-y-2 overflow-auto font-mono text-[0.7rem] text-signal-danger">
+                                <ul className="mt-4 space-y-2 font-mono text-[0.7rem]">
                                     {result.hits.map((h) => (
-                                        <li key={h.path + h.threat} className="break-all">
-                                            <span className="text-ink-soft">{h.threat}</span>
+                                        <li
+                                            key={h.path + h.threat + (h.kind || '')}
+                                            className={`break-all border-b border-ink/10 pb-2 last:border-0 ${
+                                                h.kind === 'caution' ? 'text-signal-warn' : 'text-signal-danger'
+                                            }`}
+                                        >
+                                            <span className="text-ink-soft">
+                                                {h.kind === 'caution' ? 'скрипт/макрос · ' : ''}
+                                                {h.threat}
+                                            </span>
                                             <br />
                                             {h.path}
                                         </li>
@@ -463,7 +502,6 @@ function App() {
                             рекурсивно.
                         </p>
                     )}
-
                 </div>
             </main>
 
@@ -523,9 +561,11 @@ function App() {
                                                 className={
                                                     h.status === 'infected'
                                                         ? 'text-signal-danger'
-                                                        : h.status === 'clean'
-                                                          ? 'text-signal'
-                                                          : ''
+                                                        : h.status === 'caution'
+                                                          ? 'text-signal-warn'
+                                                          : h.status === 'clean'
+                                                            ? 'text-signal'
+                                                            : ''
                                                 }
                                             >
                                                 {statusRu[h.status] || h.status}

@@ -34,6 +34,7 @@ export namespace scanner {
 	export class Hit {
 	    path: string;
 	    threat: string;
+	    kind?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Hit(source);
@@ -43,6 +44,7 @@ export namespace scanner {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.path = source["path"];
 	        this.threat = source["threat"];
+	        this.kind = source["kind"];
 	    }
 	}
 	export class Result {
@@ -55,6 +57,8 @@ export namespace scanner {
 	    engine: string;
 	    scannedAt: string;
 	    durationMs: number;
+	    filesScanned?: number;
+	    infectedCount?: number;
 	    message?: string;
 	    offline: boolean;
 	
@@ -73,6 +77,8 @@ export namespace scanner {
 	        this.engine = source["engine"];
 	        this.scannedAt = source["scannedAt"];
 	        this.durationMs = source["durationMs"];
+	        this.filesScanned = source["filesScanned"];
+	        this.infectedCount = source["infectedCount"];
 	        this.message = source["message"];
 	        this.offline = source["offline"];
 	    }

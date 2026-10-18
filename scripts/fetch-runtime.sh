@@ -5,7 +5,7 @@ set -euo pipefail
 
 OS="${1:?os: linux|windows}"
 ARCH="${2:?arch: amd64}"
-OUT="${3:?outdir}"
+OUT="$(cd "${3:?outdir}" && pwd)"
 PLATFORM="${OS}-${ARCH}"
 DEST="${OUT}/runtime/${PLATFORM}"
 mkdir -p "$DEST"
@@ -51,7 +51,7 @@ if [[ "$OS" == "linux" && "$ARCH" == "amd64" ]]; then
     exit 1
   fi
   # Без apt-get update / без sudo — качаем .deb в TMP
-  apt-get download clamav clamav-base clamav-freshclam
+  apt-get download clamav clamav-base clamav-freshclam clamav-daemon clamdscan
   apt-get download libclamav12 2>/dev/null || apt-get download 'libclamav*' || true
   for dep in libtfm1 libjson-c5 libpcre2-8-0 libbz2-1.0 zlib1g libxml2 libcurl4t64 libcurl4 \
     libssl3t64 libssl3 libnghttp2-14 libidn2-0 librtmp1 libssh-4 libpsl5t64 libpsl5 \
@@ -72,11 +72,17 @@ if [[ "$OS" == "linux" && "$ARCH" == "amd64" ]]; then
     exit 1
   fi
   cp -a "$CLAMSCAN" "$DEST/clamscan"
+  # clamd + clamdscan — базы в памяти между сканами (ускорение)
+  for bin in clamdscan clamd; do
+    B="$(find extract -type f -name "$bin" | head -1)"
+    if [[ -n "$B" ]]; then
+      cp -a "$B" "$DEST/$bin"
+      chmod +x "$DEST/$bin"
+    fi
+  done
   # Файлы и симлинки SONAME (libclamav.so.12 → libclamav.so.12.1.0)
-  # -type f раньше пропускал symlink → exit 127 у clamscan
-  while IFS= read -r -d '' f; do
-    cp -a "$f" "$DEST/"
-  done < <(find extract \( -type f -o -type l \) -name '*.so*' -print0)
+  # -exec по одному: pipe+cp иногда segfault на битых symlink из .deb
+  find extract \( -type f -o -type l \) -name '*.so*' -exec cp -a {} "$DEST/" \;
 
   # CVD CA (ClamAV 1.4+). Без этого после удаления системного clamav — «Broken CVD».
   mkdir -p "${DEST}/certs"
@@ -94,7 +100,7 @@ if [[ "$OS" == "linux" && "$ARCH" == "amd64" ]]; then
     LD_LIBRARY_PATH="$DEST" ldd "$DEST/clamscan" || true
     exit 1
   fi
-  echo "OK linux → ${DEST}/clamscan ($(find "$DEST" -name '*.so*' | wc -l) libs, certs=$(ls "${DEST}/certs" | wc -l))"
+  echo "OK linux → ${DEST}/clamscan ($(find "$DEST" -name '*.so*' | wc -l) libs, certs=$(ls "${DEST}/certs" | wc -l), clamd=$([[ -x $DEST/clamd ]] && echo yes || echo no))"
   CVD_CERTS_DIR="${DEST}/certs" LD_LIBRARY_PATH="$DEST" "$DEST/clamscan" --version | head -1
   exit 0
 fi
