@@ -31,7 +31,7 @@ const (
 type Hit struct {
 	Path   string `json:"path"`
 	Threat string `json:"threat"`
-	Kind   string `json:"kind,omitempty"` // virus | caution
+	Kind   string `json:"kind,omitempty"` // virus | caution | limit
 }
 
 // Result — ответ UI после локального скана.
@@ -224,7 +224,13 @@ func (e *Engine) ScanPath(ctx context.Context, path string) Result {
 		}
 	}
 	if !usedClamd {
-		args := []string{"--infected", "-d", e.DatabaseDir}
+		args := []string{
+			"--infected", "-d", e.DatabaseDir,
+			"--alert-exceeds-max=yes",
+			"--max-filesize=4096M",
+			"--max-scansize=8192M",
+			"--max-files=200000",
+		}
 		if e.CertsDir != "" {
 			args = append(args, "--cvdcertsdir="+e.CertsDir)
 		}
@@ -261,18 +267,29 @@ func (e *Engine) ScanPath(ctx context.Context, path string) Result {
 	if errors.As(scanErr, &exitErr) {
 		switch exitErr.ExitCode() {
 		case 1:
-			res.Status = StatusInfected
-			res.Hits = parseHits(text)
-			if res.InfectedCount == 0 {
-				res.InfectedCount = len(res.Hits)
+			res.Hits = classifyHits(parseHits(text))
+			vir := virusHits(res.Hits)
+			lim := limitHits(res.Hits)
+			res.InfectedCount = len(vir)
+			if len(vir) == 0 && len(lim) > 0 {
+				// только лимиты — не «угроза» и не «чисто»
+				res.Status = StatusCaution
+				res.Threat = lim[0].Threat
+				mergeDocCautions(&res, pred)
+				res.Message = limitMessage(res)
+				return res
 			}
-			if len(res.Hits) > 0 {
-				res.Threat = folderThreatLabel(virusHits(res.Hits))
+			res.Status = StatusInfected
+			if len(vir) > 0 {
+				res.Threat = folderThreatLabel(vir)
 			} else {
 				res.Threat = parseThreat(text, abs)
 			}
 			mergeDocCautions(&res, pred)
 			res.Message = infectedMessage(res)
+			if len(lim) > 0 {
+				res.Message += fmt.Sprintf(" · неполная проверка (лимит): %d", len(lim))
+			}
 			return res
 		default:
 			res.Status = StatusError
@@ -376,14 +393,65 @@ func virusHits(hits []Hit) []Hit {
 	return out
 }
 
+func limitHits(hits []Hit) []Hit {
+	var out []Hit
+	for _, h := range hits {
+		if h.Kind == "limit" {
+			out = append(out, h)
+		}
+	}
+	return out
+}
+
 func cautionCount(hits []Hit) int {
 	n := 0
 	for _, h := range hits {
-		if h.Kind == "caution" {
+		if h.Kind == "caution" || h.Kind == "limit" {
 			n++
 		}
 	}
 	return n
+}
+
+func isLimitHeuristic(threat string) bool {
+	return strings.Contains(threat, "Heuristics.Limits.Exceeded")
+}
+
+func classifyHits(hits []Hit) []Hit {
+	for i := range hits {
+		if isLimitHeuristic(hits[i].Threat) {
+			hits[i].Kind = "limit"
+			hits[i].Threat = limitThreatRu(hits[i].Threat)
+		}
+	}
+	return hits
+}
+
+func limitThreatRu(raw string) string {
+	switch {
+	case strings.Contains(raw, "MaxFileSize"):
+		return "файл больше лимита полной проверки (MaxFileSize)"
+	case strings.Contains(raw, "MaxScanSize"):
+		return "объём данных превысил лимит скана (MaxScanSize)"
+	case strings.Contains(raw, "MaxFiles"):
+		return "слишком много вложенных файлов (MaxFiles)"
+	case strings.Contains(raw, "MaxRecursion"), strings.Contains(raw, "MaxDirectoryRecursion"):
+		return "слишком глубокая вложенность архива"
+	default:
+		return "проверка обрезана лимитом ClamAV — не считайте файл полностью проверенным"
+	}
+}
+
+func limitMessage(res Result) string {
+	n := len(limitHits(res.Hits))
+	msg := "Проверка неполная: сработал лимит размера/глубины ClamAV — это не «чисто»"
+	if n > 1 {
+		msg = fmt.Sprintf("Проверка неполная у %d объект(ов): сработал лимит ClamAV — это не «чисто»", n)
+	}
+	if res.FilesScanned > 0 {
+		msg = fmt.Sprintf("Проверено файлов: %d. %s", res.FilesScanned, msg)
+	}
+	return msg
 }
 
 func cleanMessage(res Result) string {

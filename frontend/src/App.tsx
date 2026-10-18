@@ -153,7 +153,15 @@ function App() {
                 const n = res.hits?.length || 1;
                 pushToast(n > 1 ? `Обнаружено угроз: ${n}` : `Угроза: ${res.threat || 'найдена'}`, 'err', 5000);
             } else if (res.status === 'caution') {
-                pushToast(res.message || 'В документе есть скрипты/макросы', 'warn', 6500);
+                const lim = res.hits?.some((h) => h.kind === 'limit');
+                pushToast(
+                    res.message ||
+                        (lim
+                            ? 'Проверка неполная из‑за лимита размера — не «чисто»'
+                            : 'В документе есть скрипты/макросы'),
+                    'warn',
+                    7000,
+                );
             } else if (res.status === 'clean') {
                 pushToast(res.isDir ? 'Папка чистая' : 'Файл чистый', 'ok');
             } else if (res.message) {
@@ -482,11 +490,17 @@ function App() {
                                         <li
                                             key={h.path + h.threat + (h.kind || '')}
                                             className={`break-all border-b border-ink/10 pb-2 last:border-0 ${
-                                                h.kind === 'caution' ? 'text-signal-warn' : 'text-signal-danger'
+                                                h.kind === 'caution' || h.kind === 'limit'
+                                                    ? 'text-signal-warn'
+                                                    : 'text-signal-danger'
                                             }`}
                                         >
                                             <span className="text-ink-soft">
-                                                {h.kind === 'caution' ? 'скрипт/макрос · ' : ''}
+                                                {h.kind === 'caution'
+                                                    ? 'скрипт/макрос · '
+                                                    : h.kind === 'limit'
+                                                      ? 'лимит · '
+                                                      : ''}
                                                 {h.threat}
                                             </span>
                                             <br />

@@ -3,6 +3,7 @@ package scanner
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -40,5 +41,22 @@ func TestParseScanCounts(t *testing.T) {
 	s, i := parseScanCounts(out)
 	if s != 7 || i != 5 {
 		t.Fatalf("scanned=%d infected=%d", s, i)
+	}
+}
+
+func TestClassifyLimitHits(t *testing.T) {
+	hits := classifyHits([]Hit{
+		{Path: "/a.exe", Threat: "Heuristics.Limits.Exceeded.MaxFileSize", Kind: "virus"},
+		{Path: "/b.com", Threat: "Eicar-Test-Signature", Kind: "virus"},
+	})
+	if hits[0].Kind != "limit" {
+		t.Fatalf("kind0=%s", hits[0].Kind)
+	}
+	if !strings.Contains(hits[0].Threat, "лимит") {
+		t.Fatalf("ru=%s", hits[0].Threat)
+	}
+	vir := virusHits(hits)
+	if len(vir) != 1 || vir[0].Threat != "Eicar-Test-Signature" {
+		t.Fatalf("%+v", vir)
 	}
 }
