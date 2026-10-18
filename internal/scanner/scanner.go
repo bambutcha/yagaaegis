@@ -17,6 +17,7 @@ import (
 
 	"github.com/bambutcha/yagaaegis/internal/runtimebin"
 	"github.com/bambutcha/yagaaegis/internal/sigdb"
+	"github.com/bambutcha/yagaaegis/internal/winproc"
 )
 
 const (
@@ -134,6 +135,7 @@ func (e *Engine) Version(ctx context.Context) (string, error) {
 	cmd := exec.CommandContext(ctx, e.Binary, "--version")
 	cmd.Dir = filepath.Dir(e.Binary)
 	cmd.Env = e.clamEnv()
+	winproc.HideConsole(cmd)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		detail := strings.TrimSpace(string(out))
@@ -241,6 +243,7 @@ func (e *Engine) ScanPath(ctx context.Context, path string) Result {
 		cmd := exec.CommandContext(ctx, e.Binary, args...)
 		cmd.Dir = filepath.Dir(e.Binary)
 		cmd.Env = e.clamEnv()
+		winproc.HideConsole(cmd)
 		out, scanErr = cmd.CombinedOutput()
 	}
 	res.DurationMs = time.Since(start).Milliseconds()

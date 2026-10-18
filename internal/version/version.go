@@ -2,7 +2,7 @@
 package version
 
 // String — SemVer. Менять по правилу .cursor/rules/yagaaegis-versioning.mdc
-const String = "1.0.4"
+const String = "1.0.5"
 
 // Author — отображается в UI рядом с версией и в метаданных сборки.
 const Author = "bambutcha"

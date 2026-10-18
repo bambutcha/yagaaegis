@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/bambutcha/yagaaegis/internal/winproc"
 )
 
 // Options — что снести.
@@ -39,12 +41,41 @@ func legacyUserDataDir() string {
 	return filepath.Join(base, "localguard")
 }
 
+// userDataDirsToRemove — Roaming + Local AppData на Windows (NSIS all-context раньше чистил не то).
+func userDataDirsToRemove() []string {
+	dirs := []string{UserDataDir(), legacyUserDataDir()}
+	if runtime.GOOS != "windows" {
+		return dirs
+	}
+	home, _ := os.UserHomeDir()
+	roaming := os.Getenv("APPDATA")
+	if roaming == "" && home != "" {
+		roaming = filepath.Join(home, "AppData", "Roaming")
+	}
+	local := os.Getenv("LOCALAPPDATA")
+	if local == "" && home != "" {
+		local = filepath.Join(home, "AppData", "Local")
+	}
+	for _, base := range []string{roaming, local} {
+		if base == "" {
+			continue
+		}
+		for _, name := range []string{"yagaaegis", "YagaAegis", "localguard", "LocalGuard", "YagaAegis.exe"} {
+			dirs = append(dirs, filepath.Join(base, name))
+		}
+	}
+	return dirs
+}
+
 func userConfigBase() string {
 	base, err := os.UserConfigDir()
 	if err != nil {
 		home, herr := os.UserHomeDir()
 		if herr != nil {
 			return ""
+		}
+		if runtime.GOOS == "windows" {
+			return filepath.Join(home, "AppData", "Roaming")
 		}
 		return filepath.Join(home, ".config")
 	}
@@ -91,7 +122,7 @@ func Run(opt Options, progress Progress) error {
 
 	if !opt.KeepUserData {
 		step(0.2, "данные пользователя")
-		for _, ud := range []string{UserDataDir(), legacyUserDataDir()} {
+		for _, ud := range userDataDirsToRemove() {
 			if ud != "" && !looksDangerous(ud) {
 				_ = os.RemoveAll(ud)
 			}
@@ -243,6 +274,7 @@ func scheduleWindowsSelfDelete(installDir string) error {
 		return err
 	}
 	cmd := exec.Command("cmd", "/C", "start", "", "/MIN", tmp)
+	winproc.HideConsole(cmd)
 	return cmd.Start()
 }
 

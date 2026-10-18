@@ -3,6 +3,16 @@
 Формат: [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/) + SemVer.  
 Каждый GitHub Release обязан дублировать блок: **о продукте (1–2 предложения)** + **изменения относительно предыдущего тега**.
 
+## [1.0.5] — 2026-10-18
+
+**YagaAegis** — локальный сканер файлов/папок на Windows и Linux на базе ClamAV; файлы не уходят в сеть.
+
+### Изменения относительно 1.0.4
+
+- Windows: без мигающих окон `cmd` при clamscan/clamd (CREATE_NO_WINDOW)
+- Windows: иконка в установленном `.exe` и ярлыках
+- Windows uninstall: чистит `%AppData%\Roaming\yagaaegis` и Local (раньше elevated NSIS смотрел не в тот AppData)
+
 ## [1.0.4] — 2026-10-18
 
 **YagaAegis** — локальный сканер файлов/папок на Windows и Linux на базе ClamAV; файлы не уходят в сеть.
@@ -68,6 +78,7 @@
 
 ---
 
+[1.0.5]: https://github.com/bambutcha/yagaaegis/releases/tag/v1.0.5
 [1.0.4]: https://github.com/bambutcha/yagaaegis/releases/tag/v1.0.4
 [1.0.3]: https://github.com/bambutcha/yagaaegis/releases/tag/v1.0.3
 [1.0.2]: https://github.com/bambutcha/yagaaegis/releases/tag/v1.0.2

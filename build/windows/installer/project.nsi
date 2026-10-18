@@ -94,9 +94,12 @@ Section
     File /r "..\..\bin\seed"
     File "..\..\bin\Uninstall.exe"
 
-    CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
-    CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
-    CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME} Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+    SetOutPath $INSTDIR
+    File "..\icon.ico"
+
+    CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}" "" "$INSTDIR\icon.ico" 0
+    CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}" "" "$INSTDIR\icon.ico" 0
+    CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME} Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\icon.ico" 0
 
     !insertmacro wails.associateFiles
     !insertmacro wails.associateCustomProtocols
@@ -107,15 +110,31 @@ SectionEnd
 Section "uninstall"
     !insertmacro wails.setShellContext
 
-    RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # WebView2 DataPath
-    # Базы CVD / данные YagaAegis (+ прежний LocalGuard)
-    RMDir /r "$APPDATA\yagaaegis"
-    RMDir /r "$LOCALAPPDATA\yagaaegis"
-    RMDir /r "$APPDATA\localguard"
-    RMDir /r "$LOCALAPPDATA\localguard"
+    ; Installer runs elevated with ShellVarContext all → $APPDATA = ProgramData.
+    ; User CVD/WebView2 live in the installing user's Roaming/Local — switch to current.
+    SetShellVarContext current
 
+    RMDir /r "$APPDATA\${PRODUCT_EXECUTABLE}"
+    RMDir /r "$APPDATA\YagaAegis"
+    RMDir /r "$APPDATA\YagaAegis.exe"
+    RMDir /r "$APPDATA\yagaaegis"
+    RMDir /r "$APPDATA\localguard"
+    RMDir /r "$LOCALAPPDATA\YagaAegis"
+    RMDir /r "$LOCALAPPDATA\YagaAegis.exe"
+    RMDir /r "$LOCALAPPDATA\yagaaegis"
+    RMDir /r "$LOCALAPPDATA\localguard"
+    ; Wails / WebView2 userdata variants
+    RMDir /r "$LOCALAPPDATA\${INFO_PRODUCTNAME}"
+    RMDir /r "$APPDATA\${INFO_PRODUCTNAME}"
+
+    SetShellVarContext all
     RMDir /r $INSTDIR
 
+    Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
+    Delete "$SMPROGRAMS\${INFO_PRODUCTNAME} Uninstall.lnk"
+    Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"
+
+    SetShellVarContext current
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME} Uninstall.lnk"
     Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"

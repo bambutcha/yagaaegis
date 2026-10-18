@@ -15,6 +15,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/bambutcha/yagaaegis/internal/winproc"
 )
 
 // errScanInfected — итог параллельного скана папки с находками (как exit 1 у clamdscan).
@@ -120,6 +122,7 @@ func (e *Engine) ensureClamd(ctx context.Context) error {
 	cmd.Env = e.clamEnv()
 	cmd.Stdout = nil
 	cmd.Stderr = nil
+	winproc.HideConsole(cmd)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("старт clamd: %w", err)
 	}
@@ -233,6 +236,7 @@ func (e *Engine) clamdscanOne(ctx context.Context, path string) ([]byte, error) 
 	cmd := exec.CommandContext(ctx, e.clamdscanPath(), args...)
 	cmd.Dir = filepath.Dir(e.clamdscanPath())
 	cmd.Env = e.clamEnv()
+	winproc.HideConsole(cmd)
 	return cmd.CombinedOutput()
 }
 

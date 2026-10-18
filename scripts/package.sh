@@ -29,8 +29,20 @@ if [[ "$OS" == "linux" ]] && pkg-config --exists webkit2gtk-4.1 2>/dev/null; the
   WAILS_EXTRA+=(-tags webkit2_41)
   echo "webkit2gtk-4.1 → wails -tags webkit2_41"
 fi
+build_windows() {
+  local extra=("$@")
+  echo "==> windows resources (.syso)"
+  (cd "${ROOT}/scripts/winresgen" && go run . "$ROOT")
+  local syso="${ROOT}/YagaAegis-res.syso"
+  # shellcheck disable=SC2064
+  trap "rm -f '$syso'" EXIT
+  wails build -platform windows/amd64 "${extra[@]}"
+  rm -f "$syso"
+  trap - EXIT
+}
+
 if [[ "$OS" == "windows" ]]; then
-  wails build -platform windows/amd64 -clean "${WAILS_EXTRA[@]}"
+  build_windows -clean "${WAILS_EXTRA[@]}"
 else
   wails build -platform linux/amd64 -clean "${WAILS_EXTRA[@]}"
 fi
@@ -65,7 +77,7 @@ cp -a "${DIST}/seed" "${ROOT}/build/bin/seed"
 if [[ "$OS" == "windows" && "$WANT_NSIS" -eq 1 ]]; then
   echo "==> NSIS installer (runtime+seed уже в build/bin)"
   if command -v makensis >/dev/null; then
-    wails build -platform windows/amd64 -nsis "${WAILS_EXTRA[@]}"
+    build_windows -nsis "${WAILS_EXTRA[@]}"
   else
     echo "makensis не найден — только portable zip (на CI windows-latest будет installer)"
   fi

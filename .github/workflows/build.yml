@@ -114,6 +114,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release/*
-          generate_release_notes: true
+          generate_release_notes: false
           draft: false
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          body: |
+            YagaAegis — локальный сканер файлов и папок для Windows и Linux на базе ClamAV. Содержимое файлов в сеть не уходит.
+
+            ## Что изменилось с v1.0.4
+            - Windows: без мигающих окон cmd при скане (clamscan/clamd)
+            - Windows: иконка у установленного приложения и ярлыков
+            - Windows uninstall: корректно удаляет данные из Roaming/Local AppData
+
