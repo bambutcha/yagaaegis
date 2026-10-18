@@ -64,6 +64,7 @@ type Engine struct {
 	clamdCmd   *exec.Cmd
 	socketPath string
 	confPath   string
+	pidPath    string
 	warmOnce   sync.Once
 }
 

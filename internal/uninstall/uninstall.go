@@ -86,6 +86,9 @@ func Run(opt Options, progress Progress) error {
 	step(0.05, "ярлыки")
 	_ = removeShortcuts()
 
+	step(0.1, "фоновый clamd")
+	stopYagaClamd()
+
 	if !opt.KeepUserData {
 		step(0.2, "данные пользователя")
 		for _, ud := range []string{UserDataDir(), legacyUserDataDir()} {
@@ -137,6 +140,30 @@ func Run(opt Options, progress Progress) error {
 	}
 	step(1, "готово")
 	return nil
+}
+
+func stopYagaClamd() {
+	base := userConfigBase()
+	if base == "" {
+		return
+	}
+	dir := filepath.Join(base, "yagaaegis", "clamd")
+	pidPath := filepath.Join(dir, "clamd.pid")
+	if b, err := os.ReadFile(pidPath); err == nil {
+		var pid int
+		for _, c := range string(b) {
+			if c >= '0' && c <= '9' {
+				pid = pid*10 + int(c-'0')
+			}
+		}
+		if pid > 1 {
+			if p, err := os.FindProcess(pid); err == nil {
+				_ = p.Kill()
+			}
+		}
+	}
+	_ = os.Remove(filepath.Join(dir, "clamd.sock"))
+	_ = os.Remove(pidPath)
 }
 
 func looksDangerous(dir string) bool {

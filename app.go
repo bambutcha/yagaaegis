@@ -42,8 +42,9 @@ func (a *App) startup(ctx context.Context) {
 }
 
 func (a *App) shutdown(ctx context.Context) {
+	// clamd оставляем живым — повторный запуск без повторной загрузки баз
 	if a.engine != nil {
-		a.engine.StopClamd()
+		a.engine.DetachClamd()
 	}
 }
 

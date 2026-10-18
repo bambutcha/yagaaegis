@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+А#!/usr/bin/env bash
 # Скачивает ClamAV runtime в outdir/runtime/<os>-<arch>/
 # Использование: ./scripts/fetch-runtime.sh <linux|windows> <amd64> <outdir>
 set -euo pipefail
