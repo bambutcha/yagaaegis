@@ -263,50 +263,48 @@ func (e *Engine) ScanPath(ctx context.Context, path string) Result {
 		return res
 	}
 
-	var exitErr *exec.ExitError
-	if errors.As(scanErr, &exitErr) {
-		switch exitErr.ExitCode() {
-		case 1:
-			res.Hits = classifyHits(parseHits(text))
-			vir := virusHits(res.Hits)
-			lim := limitHits(res.Hits)
-			res.InfectedCount = len(vir)
-			if len(vir) == 0 && len(lim) > 0 {
-				// только лимиты — не «угроза» и не «чисто»
-				res.Status = StatusCaution
-				res.Threat = lim[0].Threat
-				mergeDocCautions(&res, pred)
-				res.Message = limitMessage(res)
-				return res
-			}
-			res.Status = StatusInfected
-			if len(vir) > 0 {
-				res.Threat = folderThreatLabel(vir)
-			} else {
-				res.Threat = parseThreat(text, abs)
-			}
+	switch exitCode(scanErr) {
+	case 1:
+		res.Hits = classifyHits(parseHits(text))
+		vir := virusHits(res.Hits)
+		lim := limitHits(res.Hits)
+		res.InfectedCount = len(vir)
+		if len(vir) == 0 && len(lim) > 0 {
+			res.Status = StatusCaution
+			res.Threat = lim[0].Threat
 			mergeDocCautions(&res, pred)
-			res.Message = infectedMessage(res)
-			if len(lim) > 0 {
-				res.Message += fmt.Sprintf(" · неполная проверка (лимит): %d", len(lim))
-			}
-			return res
-		default:
-			res.Status = StatusError
-			res.Message = firstLine(text)
-			if res.Message == "" {
-				res.Message = scanErr.Error()
-			}
+			res.Message = limitMessage(res)
 			return res
 		}
+		res.Status = StatusInfected
+		if len(vir) > 0 {
+			res.Threat = folderThreatLabel(vir)
+		} else {
+			res.Threat = parseThreat(text, abs)
+		}
+		mergeDocCautions(&res, pred)
+		res.Message = infectedMessage(res)
+		if len(lim) > 0 {
+			res.Message += fmt.Sprintf(" · неполная проверка (лимит): %d", len(lim))
+		}
+		return res
+	default:
+		res.Status = StatusError
+		res.Message = firstLine(text)
+		if res.Message == "" {
+			res.Message = scanErr.Error()
+		}
+		return res
 	}
-
-	res.Status = StatusError
-	res.Message = scanErr.Error()
-	return res
 }
 
 func exitCode(err error) int {
+	if err == nil {
+		return 0
+	}
+	if errors.Is(err, errScanInfected) {
+		return 1
+	}
 	var ee *exec.ExitError
 	if errors.As(err, &ee) {
 		return ee.ExitCode()

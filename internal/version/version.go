@@ -2,7 +2,7 @@
 package version
 
 // String — SemVer. Менять по правилу .cursor/rules/yagaaegis-versioning.mdc
-const String = "1.0.2"
+const String = "1.0.3"
 
 // Author — отображается в UI рядом с версией и в метаданных сборки.
 const Author = "bambutcha"
@@ -10,12 +10,12 @@ const Author = "bambutcha"
 // AuthorURL — ссылка на профиль / репозиторий.
 const AuthorURL = "https://github.com/bambutcha"
 
-// Label — для UI («v1.0.2»).
+// Label — для UI («v1.0.3»).
 func Label() string {
 	return "v" + String
 }
 
-// Credit — «v1.0.2 · bambutcha».
+// Credit — «v1.0.3 · bambutcha».
 func Credit() string {
 	return Label() + " · " + Author
 }
