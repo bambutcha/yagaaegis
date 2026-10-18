@@ -3,6 +3,15 @@
 Формат: [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/) + SemVer.  
 Каждый GitHub Release обязан дублировать блок: **о продукте (1–2 предложения)** + **изменения относительно предыдущего тега**.
 
+## [1.0.4] — 2026-10-18
+
+**YagaAegis** — локальный сканер файлов/папок на Windows и Linux на базе ClamAV; файлы не уходят в сеть.
+
+### Изменения относительно 1.0.3
+
+- Лицензия кода сменена с MIT на **YagaAegis Source License (YSL-1.0)**: без коммерческой продажи без разрешения; при публикации форков/правок — уведомление автора
+- Добавлен `NOTICE` для GPL-компонентов ClamAV
+
 ## [1.0.3] — 2026-10-18
 
 **YagaAegis** — локальный сканер файлов/папок на Windows и Linux на базе ClamAV; файлы не уходят в сеть.
@@ -59,6 +68,7 @@
 
 ---
 
+[1.0.4]: https://github.com/bambutcha/yagaaegis/releases/tag/v1.0.4
 [1.0.3]: https://github.com/bambutcha/yagaaegis/releases/tag/v1.0.3
 [1.0.2]: https://github.com/bambutcha/yagaaegis/releases/tag/v1.0.2
 [1.0.1]: https://github.com/bambutcha/yagaaegis/releases/tag/v1.0.1

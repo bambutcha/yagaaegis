@@ -1,4 +1,4 @@
-# YagaAegis `v1.0.3`
+# YagaAegis `v1.0.4`
 
 Автор: [bambutcha](https://github.com/bambutcha) · репозиторий: [bambutcha/yagaaegis](https://github.com/bambutcha/yagaaegis)
 
@@ -95,4 +95,10 @@ wails dev
 
 ## Лицензия
 
-MIT (код YagaAegis). ClamAV в runtime — GPL-2.0; соблюдайте GPL при распространении сборок с движком.
+Код YagaAegis — **[YagaAegis Source License (YSL-1.0)](./LICENSE)** (не MIT):
+
+- личное / учебное использование и правки — можно;
+- **продавать** продукт или платно распространять — **нельзя** без письменного разрешения автора;
+- при **публикации модифицированной** версии — нужно **уведомить** автора (issue в этом репозитории) и сохранить копирайт.
+
+Вшитый **ClamAV** — по-прежнему **GPL-2.0** (см. [NOTICE](./NOTICE)); при раздаче сборок с runtime соблюдайте GPL для этой части.

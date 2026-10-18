@@ -1,21 +1,50 @@
-MIT License
+YagaAegis Source License (YSL-1.0)
+Copyright (c) 2026 bambutcha
 
-Copyright (c) 2026 Daniil Yagolnik
+This license applies to the YagaAegis application source and documentation
+in this repository, excluding third-party components (see NOTICE).
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Permissions (non-commercial)
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+   You may use, copy, study, and modify this software for personal,
+   educational, research, and other non-commercial purposes.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+   You may distribute unmodified or modified copies only if:
+   (a) this copyright notice and license are included;
+   (b) modifications are clearly marked;
+   (c) distribution is free of charge (no sale, paid redistribution,
+       paid SaaS wrapping of this product, or proprietary commercial
+       product based primarily on this software) without prior written
+       permission from the copyright holder.
+
+2. Notice of modifications
+
+   If you distribute a modified version (binary or source), you must
+   notify the copyright holder within a reasonable time by opening an
+   issue or discussion on the official repository
+   https://github.com/bambutcha/yagaaegis
+   (or another contact published there by the author), describing what
+   changed and where the distribution is published.
+
+3. Commercial use
+
+   Any commercial sale, paid licensing, or paid redistribution of this
+   software (modified or not) requires a separate written license from
+   the copyright holder.
+
+4. Patent & trademark
+
+   This license does not grant trademark rights to the name "YagaAegis"
+   or related marks beyond nominative use to identify compatible forks.
+
+5. No warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING
+   FROM THE SOFTWARE OR ITS USE.
+
+6. Third-party components
+
+   Bundled ClamAV and other third-party libraries remain under their
+   own licenses (see NOTICE). This license does not alter those terms.

@@ -1,0 +1,17 @@
+YagaAegis
+Copyright (c) 2026 bambutcha
+
+This product includes software developed under separate licenses:
+
+---------------------------------------------------------------------------
+ClamAV
+Copyright (C) Cisco Systems, Inc. and others
+License: GPL-2.0-only (see ClamAV project documentation)
+The ClamAV engine, databases tooling, and related binaries shipped under
+runtime/ are not licensed under the YagaAegis Source License.
+When redistributing builds that include ClamAV, you must comply with the
+GPL-2.0 obligations that apply to those components.
+---------------------------------------------------------------------------
+
+Other frontend/build dependencies retain their upstream licenses
+(as declared in their respective package metadata).
